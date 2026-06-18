@@ -1,10 +1,12 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Inbox - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<!doctype html><html><head><meta charset="utf-8"><title>Inbox - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px}</style></head>
 <body><h2>Simulated verification email</h2>
-<p style="color:#777;font-size:13px">A fake inbox to test locating the verify link / OTP. <code>?v=2</code> drifts their ids/labels. (Real OTP flows: use temp-mail.org.)</p>
+<p class="muted">Shared flag drifts the verify link / OTP ids (same URL). (Real OTP: temp-mail.org.)</p>
 <div id="mail"></div><div id="result"></div>
+<script src="flag.js"></script>
 <script>
-var v2=new URLSearchParams(location.search).get('v')==='2',lid=v2?'verify_v2':'verify-link',oid=v2?'otp_v2':'otp',ltxt=v2?'Confirm now':'Verify';
-document.getElementById('mail').innerHTML='<p>Subject: Verify your account</p><p><a href="#" id="'+lid+'" aria-label="Verify">'+ltxt+'</a></p><p>Code: <span id="'+oid+'">482913</span></p>';
-document.getElementById(lid).onclick=function(e){e.preventDefault();document.getElementById('result').textContent='✅ verified';};
+lcaBreak().then(function(v2){
+  var lid=v2?'verify_v2':'verify-link',oid=v2?'otp_v2':'otp',ltxt=v2?'Confirm now':'Verify';
+  document.getElementById('mail').innerHTML='<p>Subject: Verify your account</p><p><a href="#" id="'+lid+'" aria-label="Verify">'+ltxt+'</a></p><p>Code: <span id="'+oid+'">482913</span></p>';
+  document.getElementById(lid).onclick=function(e){e.preventDefault();document.getElementById('result').textContent='✅ verified';};
+});
 </script></body></html>

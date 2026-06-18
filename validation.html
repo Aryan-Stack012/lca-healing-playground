@@ -1,12 +1,14 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Validation - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<!doctype html><html><head><meta charset="utf-8"><title>Validation - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px}</style></head>
 <body><h2>Validation targets</h2>
-<p style="color:#777;font-size:13px"><code>?remove=1</code> removes the promo element &middot; <code>?v=2</code> drifts the status-badge id &middot; <code>?wrong=1</code> shows wrong badge text.</p>
+<p class="muted">Shared flag drifts <code>#status-badge</code> (heal trigger, same URL). <code>?remove=1</code> drops #promo &middot; <code>?wrong=1</code> wrong badge text (validation-failure legs).</p>
 <p>Total: <span id="total">$100</span></p>
 <div id="optional"></div><div id="badgezone"></div>
+<script src="flag.js"></script>
 <script>
-var p=new URLSearchParams(location.search),v2=p.get('v')==='2';
+var p=new URLSearchParams(location.search);
 if(!p.has('remove')){document.getElementById('optional').innerHTML='<p id="promo">Promo applied</p>';}
-var bid=v2?'status_v2':'status-badge',txt=p.has('wrong')?'Cancelled':'Confirmed';
-document.getElementById('badgezone').innerHTML='<p>Status: <span id="'+bid+'">'+txt+'</span></p>';
+lcaBreak().then(function(v2){
+  var bid=v2?'status_v2':'status-badge',txt=p.has('wrong')?'Cancelled':'Confirmed';
+  document.getElementById('badgezone').innerHTML='<p>Status: <span id="'+bid+'">'+txt+'</span></p>';
+});
 </script></body></html>

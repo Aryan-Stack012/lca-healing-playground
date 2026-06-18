@@ -1,0 +1,26 @@
+name: toggle-heal
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: 'Break state (on = locator drifts -> heal fires; off = healthy)'
+        type: choice
+        options: [on, off]
+        default: on
+permissions:
+  contents: write
+jobs:
+  toggle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set flag
+        run: |
+          if [ "${{ inputs.state }}" = "on" ]; then echo '{"break": true}' > flag.json; else echo '{"break": false}' > flag.json; fi
+      - name: Commit
+        run: |
+          git config user.name "heal-toggle"
+          git config user.email "actions@users.noreply.github.com"
+          git add flag.json
+          git commit -m "toggle heal break -> ${{ inputs.state }}" || echo "no change"
+          git push

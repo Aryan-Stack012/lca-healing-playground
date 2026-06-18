@@ -1,12 +1,14 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Checkout - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<!doctype html><html><head><meta charset="utf-8"><title>Checkout - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px}</style></head>
 <body><h2>Checkout</h2>
-<p style="color:#777;font-size:13px">Record on default. Re-run with <code>?v=2</code> (relocated + relabelled + decoy) to force a heal, or <code>?gone=1</code> (button removed) for an unhealable case.</p>
-<div id="zone"></div><div id="result"></div>
+<p class="muted">Break is driven by the shared flag (flag.json) so the URL never changes. Toggle it with the <b>toggle-heal</b> GitHub Action (or ./toggle.sh on|off). Manual overrides: <code>?v=2</code>, <code>localStorage.lcaBreak=1</code>; <code>?gone=1</code> removes the button (unhealable).</p>
+<div id="zone">loading...</div><div id="result"></div>
+<script src="flag.js"></script>
 <script>
-var p=new URLSearchParams(location.search),v2=p.get('v')==='2',gone=p.has('gone'),z=document.getElementById('zone'),r=document.getElementById('result');
-if(gone){z.innerHTML='<p>(no checkout button)</p>';}
-else if(!v2){z.innerHTML='<button id="checkout" class="btn-primary">Checkout</button>';}
-else{z.innerHTML='<button id="continue_btn" class="decoy">Continue</button> <span class="menu">More &#9662; <button id="pay_v2" class="cta" aria-label="Checkout">Pay</button></span>';}
-z.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var ok=b.id==='checkout'||b.id==='pay_v2'||b.getAttribute('aria-label')==='Checkout';r.textContent=ok?'✅ Order placed':'❌ Wrong element clicked (decoy)';r.style.color=ok?'#0a0':'#c00';});
+document.getElementById('zone').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var ok=b.id==='checkout'||b.id==='pay_v2'||b.getAttribute('aria-label')==='Checkout';var r=document.getElementById('result');r.textContent=ok?'✅ Order placed':'❌ Wrong element clicked (decoy)';r.style.color=ok?'#0a0':'#c00';});
+if(new URLSearchParams(location.search).has('gone')){document.getElementById('zone').innerHTML='<p>(no checkout button)</p>';}
+else lcaBreak().then(function(v2){
+  document.getElementById('zone').innerHTML = v2
+   ? '<button id="continue_btn" class="decoy">Continue</button> <span class="menu">More &#9662; <button id="pay_v2" class="cta" aria-label="Checkout">Pay</button></span>'
+   : '<button id="checkout" class="btn-primary">Checkout</button>';
+});
 </script></body></html>
