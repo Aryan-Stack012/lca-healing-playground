@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       state:
-        description: 'Break state (on = locator drifts -> heal fires; off = healthy)'
+        description: 'on = relocated+decoy (healable) | off = healthy | gone = button removed (unhealable)'
         type: choice
-        options: [on, off]
+        options: [on, off, gone]
         default: on
 permissions:
   contents: write
@@ -16,7 +16,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set flag
         run: |
-          if [ "${{ inputs.state }}" = "on" ]; then echo '{"break": true}' > flag.json; else echo '{"break": false}' > flag.json; fi
+          case "${{ inputs.state }}" in
+            on)   echo '{"break": true}'   > flag.json;;
+            off)  echo '{"break": false}'  > flag.json;;
+            gone) echo '{"break": "gone"}' > flag.json;;
+          esac
       - name: Commit
         run: |
           git config user.name "heal-toggle"
