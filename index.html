@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LCA Self-Healing Playground</title>
+<style>
+ body{font-family:system-ui,Arial,sans-serif;max-width:760px;margin:32px auto;padding:0 16px;color:#222}
+ h1{font-size:20px} h2{font-size:15px;margin-top:28px}
+ button{padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #888;cursor:pointer}
+ .btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}
+ .decoy{background:#eee}
+ .menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}
+ #result{margin-top:12px;font-weight:600}
+ code{background:#f3f3f3;padding:1px 5px;border-radius:4px}
+ .muted{color:#777;font-size:13px}
+</style>
+</head>
+<body>
+<h1>LCA Self-Healing Playground</h1>
+<p class="muted">Record against the default URL, then re-run against a "changed app" variant to force a heal.<br>
+Modes: <code>?v=2</code> = Checkout relocated/relabelled + a decoy button &middot; <code>?remove=1</code> = validation element gone &middot; <code>?delay=1</code> = element arrives late.</p>
+
+<h2>1. Checkout (locator drift / structural change / false-positive)</h2>
+<div id="checkout-zone"></div>
+<div id="result"></div>
+
+<h2>2. Shadow DOM button</h2>
+<div id="shadow-host"></div>
+
+<h2>3. iFrame button</h2>
+<iframe id="frame" title="frame" style="width:100%;height:90px;border:1px solid #ccc"
+  srcdoc='&lt;!doctype html&gt;&lt;body style="font-family:sans-serif"&gt;&lt;button id="frame-checkout" aria-label="Checkout"&gt;Checkout&lt;/button&gt;&lt;p id="frame-result"&gt;&lt;/p&gt;&lt;script&gt;document.querySelector("button").onclick=function(){document.getElementById("frame-result").textContent="frame clicked"}&lt;/script&gt;&lt;/body&gt;'></iframe>
+
+<h2>4. Validation target</h2>
+<p>Total: <span id="total">$100</span></p>
+<div id="optional"></div>
+
+<script>
+ var p = new URLSearchParams(location.search);
+ var v2 = p.get('v') === '2';
+ var z = document.getElementById('checkout-zone');
+ var res = document.getElementById('result');
+
+ // Checkout button: default (record) vs "changed app" v2 (forces a heal)
+ if (!v2){
+   z.innerHTML = '<button id="checkout" class="btn-primary">Checkout</button>';
+ } else {
+   z.innerHTML =
+     '<button id="continue_btn" class="decoy">Continue</button> ' +              // decoy in the old spot
+     '<span class="menu">More &#9662; ' +
+       '<button id="pay_v2" class="cta" aria-label="Checkout">&#128722; Pay</button>' +  // real checkout: new id/class, no visible "Checkout" text
+     '</span>';
+ }
+ z.addEventListener('click', function(e){
+   var b = e.target.closest('button'); if(!b) return;
+   var isCheckout = b.id==='checkout' || b.id==='pay_v2' || b.getAttribute('aria-label')==='Checkout';
+   res.textContent = isCheckout ? '✅ Order placed' : '❌ Wrong element clicked (decoy)';
+   res.style.color = isCheckout ? '#0a0' : '#c00';
+ });
+
+ // Shadow DOM button (id changes in v2)
+ var host = document.getElementById('shadow-host').attachShadow({mode:'open'});
+ host.innerHTML = '<button id="'+(v2?'sd_v2':'shadow-checkout')+'" aria-label="Checkout">Checkout</button>';
+
+ // Validation: removable element + known value; optional late element
+ if (!p.has('remove')){
+   document.getElementById('optional').innerHTML = '<p id="promo">Promo applied</p>';
+ }
+ if (p.has('delay')){
+   setTimeout(function(){ var d=document.createElement('p'); d.id='late'; d.textContent='Loaded late'; document.body.appendChild(d); }, 5000);
+ }
+</script>
+</body>
+</html>
