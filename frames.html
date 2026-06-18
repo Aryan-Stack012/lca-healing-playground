@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Frames & Shadow - heal playground</title>
+<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:8px 14px}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<body><h2>iFrame + Shadow DOM</h2>
+<p style="color:#777;font-size:13px"><code>?v=2</code> drifts the element ids/labels inside the frame and shadow root.</p>
+<h3>iFrame</h3><iframe id="frame" title="f" style="width:100%;height:80px;border:1px solid #ccc"></iframe>
+<h3>Shadow DOM</h3><div id="host"></div><div id="sresult"></div>
+<script>
+var v2=new URLSearchParams(location.search).get('v')==='2';
+var fid=v2?'f2':'frame-checkout',sid=v2?'s2':'shadow-checkout',label=v2?'Pay':'Checkout';
+document.getElementById('frame').srcdoc='<!doctype html><body style="font-family:sans-serif"><button id="'+fid+'" aria-label="Checkout">'+label+'</button><p id="fr"></p><scr'+'ipt>document.querySelector(\'button\').onclick=function(){document.getElementById(\'fr\').textContent=\'frame clicked\'}</scr'+'ipt></body>';
+var sh=document.getElementById('host').attachShadow({mode:'open'});
+sh.innerHTML='<button id="'+sid+'" aria-label="Checkout">'+label+'</button>';
+sh.querySelector('button').addEventListener('click',function(){document.getElementById('sresult').textContent='shadow clicked';});
+</script></body></html>

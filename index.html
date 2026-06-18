@@ -1,75 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LCA Self-Healing Playground</title>
-<style>
- body{font-family:system-ui,Arial,sans-serif;max-width:760px;margin:32px auto;padding:0 16px;color:#222}
- h1{font-size:20px} h2{font-size:15px;margin-top:28px}
- button{padding:10px 16px;font-size:14px;border-radius:6px;border:1px solid #888;cursor:pointer}
- .btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}
- .decoy{background:#eee}
- .menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}
- #result{margin-top:12px;font-weight:600}
- code{background:#f3f3f3;padding:1px 5px;border-radius:4px}
- .muted{color:#777;font-size:13px}
-</style>
-</head>
-<body>
-<h1>LCA Self-Healing Playground</h1>
-<p class="muted">Record against the default URL, then re-run against a "changed app" variant to force a heal.<br>
-Modes: <code>?v=2</code> = Checkout relocated/relabelled + a decoy button &middot; <code>?remove=1</code> = validation element gone &middot; <code>?delay=1</code> = element arrives late.</p>
-
-<h2>1. Checkout (locator drift / structural change / false-positive)</h2>
-<div id="checkout-zone"></div>
-<div id="result"></div>
-
-<h2>2. Shadow DOM button</h2>
-<div id="shadow-host"></div>
-
-<h2>3. iFrame button</h2>
-<iframe id="frame" title="frame" style="width:100%;height:90px;border:1px solid #ccc"
-  srcdoc='&lt;!doctype html&gt;&lt;body style="font-family:sans-serif"&gt;&lt;button id="frame-checkout" aria-label="Checkout"&gt;Checkout&lt;/button&gt;&lt;p id="frame-result"&gt;&lt;/p&gt;&lt;script&gt;document.querySelector("button").onclick=function(){document.getElementById("frame-result").textContent="frame clicked"}&lt;/script&gt;&lt;/body&gt;'></iframe>
-
-<h2>4. Validation target</h2>
-<p>Total: <span id="total">$100</span></p>
-<div id="optional"></div>
-
-<script>
- var p = new URLSearchParams(location.search);
- var v2 = p.get('v') === '2';
- var z = document.getElementById('checkout-zone');
- var res = document.getElementById('result');
-
- // Checkout button: default (record) vs "changed app" v2 (forces a heal)
- if (!v2){
-   z.innerHTML = '<button id="checkout" class="btn-primary">Checkout</button>';
- } else {
-   z.innerHTML =
-     '<button id="continue_btn" class="decoy">Continue</button> ' +              // decoy in the old spot
-     '<span class="menu">More &#9662; ' +
-       '<button id="pay_v2" class="cta" aria-label="Checkout">&#128722; Pay</button>' +  // real checkout: new id/class, no visible "Checkout" text
-     '</span>';
- }
- z.addEventListener('click', function(e){
-   var b = e.target.closest('button'); if(!b) return;
-   var isCheckout = b.id==='checkout' || b.id==='pay_v2' || b.getAttribute('aria-label')==='Checkout';
-   res.textContent = isCheckout ? '✅ Order placed' : '❌ Wrong element clicked (decoy)';
-   res.style.color = isCheckout ? '#0a0' : '#c00';
- });
-
- // Shadow DOM button (id changes in v2)
- var host = document.getElementById('shadow-host').attachShadow({mode:'open'});
- host.innerHTML = '<button id="'+(v2?'sd_v2':'shadow-checkout')+'" aria-label="Checkout">Checkout</button>';
-
- // Validation: removable element + known value; optional late element
- if (!p.has('remove')){
-   document.getElementById('optional').innerHTML = '<p id="promo">Promo applied</p>';
- }
- if (p.has('delay')){
-   setTimeout(function(){ var d=document.createElement('p'); d.id='late'; d.textContent='Loaded late'; document.body.appendChild(d); }, 5000);
- }
-</script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LCA Self-Healing Playground</title>
+<style>body{font-family:system-ui,Arial;max-width:920px;margin:32px auto;padding:0 16px;color:#222}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:14px}td,th{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f6f6f6}code{background:#f3f3f3;padding:1px 5px;border-radius:4px}a{color:#0b66ff}</style></head>
+<body><h1>LCA Self-Healing Playground</h1>
+<p>Controllable pages for testing adaptive self-healing of agentic tests. <b>Pattern:</b> record on the default URL, then re-run against a variant (usually <code>?v=2</code>) that breaks the captured locator so a heal must fire.</p>
+<p><b>Scenarios:</b> <a href="checkout.html">checkout.html</a> &nbsp; <a href="frames.html">frames.html</a> &nbsp; <a href="validation.html">validation.html</a> &nbsp; <a href="visual.html">visual.html</a> &nbsp; <a href="timing.html">timing.html</a> &nbsp; <a href="flow.html">flow.html</a> &nbsp; <a href="data.html">data.html</a> &nbsp; <a href="email.html">email.html</a> &nbsp; <a href="cookie.html">cookie.html</a> &nbsp; <a href="download.html">download.html</a> &nbsp; </p>
+<h2>All 34 test cases &rarr; page mapping</h2>
+<p style="color:#777;font-size:13px">App/suite/build/flag/RBAC/mobile/reporting cases use these pages as the test <i>target</i>; the heal-triggering condition is induced on the page, the rest is configured in LCA.</p>
+<table><tr><th>Case</th><th>Page</th><th>How to exercise it</th></tr><tr><td>S1</td><td><code>checkout.html</code></td><td>Record click Checkout on default; re-run ?v=2 -> locator heal recovers, passes</td></tr><tr><td>S2</td><td><code>validation.html + visual.html</code></td><td>Assert wrong #total / removed #promo (?remove=1) / visual mismatch -> NOT healed</td></tr><tr><td>S3</td><td><code>checkout.html</code></td><td>App: record a NON-agentic test; verify no adaptive heal; check run-only vs edit RBAC</td></tr><tr><td>S4</td><td><code>checkout.html</code></td><td>App: healing flag OFF (no heal) vs both flags ON (heals)</td></tr><tr><td>S5</td><td><code>checkout.html</code></td><td>App: edit a step -> new version -> restore</td></tr><tr><td>S6</td><td><code>checkout.html</code></td><td>Record Checkout; re-run ?v=2 (relocated, no visible text) -> adaptive re-derivation</td></tr><tr><td>S7</td><td><code>checkout.html?v=2</code></td><td>Decoy 'Continue' is present -> heal must hit the real Checkout, never the decoy</td></tr><tr><td>S8</td><td><code>checkout.html + validation.html + bad host</code></td><td>Fragility heals; validation mismatch & infra refused</td></tr><tr><td>S9</td><td><code>checkout.html?gone=1</code></td><td>Button removed (unhealable): heal fails 3x -> budget exhausted; then edit -> new version resets</td></tr><tr><td>S10</td><td><code>checkout.html</code></td><td>Suite: run across Chrome+Firefox+Edge -> heal on Chrome, reuse on failing browsers</td></tr><tr><td>S11</td><td><code>checkout.html + a non-AI test</code></td><td>Suite: auto-rerun ON (no adaptive heal) vs OFF (heal AI only)</td></tr><tr><td>S12</td><td><code>checkout.html</code></td><td>App UI: healed run -> 'AI healed' badge (only) + AI sparkle in build details</td></tr><tr><td>S13</td><td><code>frames.html</code></td><td>?v=2 drifts the iframe + shadow-DOM button -> adaptive re-finds across the boundary</td></tr><tr><td>S14</td><td><code>api/todo.json + httpbin.org/status/401,500</code></td><td>API failure (status / JSON mismatch) -> never healed</td></tr><tr><td>S15</td><td><code>download.html + visual.html</code></td><td>Wrong filename / visual mismatch -> not healed; visual baselines stay per-browser</td></tr><tr><td>S16</td><td><code>timing.html</code></td><td>?delay element for intelligent-wait; set fail-and-stop / fail-but-continue in app</td></tr><tr><td>S17</td><td><code>checkout.html</code></td><td>App: recorder edit (heal off) / restore AI version (on) / 'Save as steps' (never)</td></tr><tr><td>S18</td><td><code>checkout.html</code></td><td>App: view-test Run vs Build run -> no double-heal / conflicting versions</td></tr><tr><td>S19</td><td><code>checkout.html (scheduled) + the-internet/upload</code></td><td>Scheduled heal; 'Aborted' via OS file dialog doesn't burn budget; auto-rerun = no heal</td></tr><tr><td>S20</td><td><code>data.html</code></td><td>Extract #token (?v=2 drifts) -> build report keeps the heal + preserves {{token}}</td></tr><tr><td>S21</td><td><code>checkout.html (used as a module)</code></td><td>Module/shared step fails -> never healed; surrounding AI steps still heal</td></tr><tr><td>S22</td><td><code>checkout.html</code></td><td>?v=2 -> heal -> new 'Auto-healed by BrowserStack AI' version; ?gone=1 -> heal fails -> NO version</td></tr><tr><td>S23</td><td><code>checkout.html</code></td><td>Record NON-agentic; re-run ?v=2 -> tier-1 locator heal works; adaptive NOT invoked</td></tr><tr><td>S24</td><td><code>validation.html</code></td><td>?v=2 drifts #status-badge (element-not-found -> heals); ?wrong=1 (mismatch -> no heal)</td></tr><tr><td>S25</td><td><code>flow.html</code></td><td>?v=2 drifts the middle step -> replay to first failing step, re-record everything onward</td></tr><tr><td>S26</td><td><code>checkout.html</code></td><td>Capacity: many parallel runs; shared lcnc-ai-user account + 2x healing parallels</td></tr><tr><td>S27</td><td><code>checkout.html</code></td><td>Run on an emulated mobile browser -> heals like desktop Chrome</td></tr><tr><td>S28</td><td><code>checkout.html</code></td><td>Suite executed blockwise / sequential / parallel -> heals in each (order not preserved)</td></tr><tr><td>S29</td><td><code>data.html</code></td><td>Test A extracts #token, Test B ?use=...; fail A's capture (heal) vs B bad data (no heal)</td></tr><tr><td>S30</td><td><code>cookie.html</code></td><td>Set a cookie/localStorage in run config; heal run must still show it (basic auth: external)</td></tr><tr><td>S31</td><td><code>checkout.html</code></td><td>Build with Visual Testing enabled -> healing is disabled</td></tr><tr><td>S32</td><td><code>checkout.html</code></td><td>Cloud build: healed AI test -> healed-execution details in XML report + status API</td></tr><tr><td>S33</td><td><code>email.html</code></td><td>?v=2 drifts the verify link/OTP (heals); assert wrong OTP (no heal). Real OTP: temp-mail.org</td></tr><tr><td>S34</td><td><code>checkout.html</code></td><td>Cloud build: fragile test -> 'healing in progress' banner, rerun with healed version, build duration</td></tr></table>
+</body></html>

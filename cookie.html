@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Config - heal playground</title>
+<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}pre{background:#f3f3f3;padding:10px}</style></head>
+<body><h2>Browser config check</h2>
+<p style="color:#777;font-size:13px">Shows cookies / localStorage seen by the page. Set a cookie or localStorage key in your LCA run config; the heal run should still show it. (Basic auth: use the-internet/basic_auth, admin/admin.)</p>
+<pre id="out"></pre>
+<script>
+document.getElementById('out').textContent='cookies: '+(document.cookie||'(none)')+'\nlocalStorage.demoConfig: '+(localStorage.getItem('demoConfig')||'(missing)');
+</script></body></html>

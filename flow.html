@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Flow - heal playground</title>
+<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;margin:4px 0}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<body><h2>Multi-step flow</h2>
+<p style="color:#777;font-size:13px">Search -> Add to cart -> Checkout. <code>?v=2</code> drifts the middle (Add to cart) step, so the heal replays to it and re-records from there on.</p>
+<div id="s1"><button id="search">Search</button></div><div id="s2"></div><div id="s3"></div><div id="result"></div>
+<script>
+var v2=new URLSearchParams(location.search).get('v')==='2',addId=v2?'add_v2':'add-to-cart',addTxt=v2?'+ Cart':'Add to cart';
+document.getElementById('search').onclick=function(){document.getElementById('s2').innerHTML='<button id="'+addId+'" aria-label="Add to cart">'+addTxt+'</button>';document.querySelector('#s2 button').onclick=function(){document.getElementById('s3').innerHTML='<button id="checkout" aria-label="Checkout">Checkout</button>';document.querySelector('#s3 button').onclick=function(){document.getElementById('result').textContent='✅ Order placed';};};};
+</script></body></html>

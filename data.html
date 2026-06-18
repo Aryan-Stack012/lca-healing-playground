@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Shared data - heal playground</title>
+<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<body><h2>Producer / Consumer</h2>
+<p style="color:#777;font-size:13px">Producer shows a token to extract (<code>?v=2</code> drifts its id). Consumer: open <code>?use=HEAL-7421</code> to verify a passed value.</p>
+<div id="prod"></div><div id="cons"></div>
+<script>
+var p=new URLSearchParams(location.search),v2=p.get('v')==='2',tid=v2?'token_v2':'token';
+document.getElementById('prod').innerHTML='<p>Token: <span id="'+tid+'">HEAL-7421</span></p>';
+if(p.has('use')){var ok=p.get('use')==='HEAL-7421';document.getElementById('cons').innerHTML='<p>'+(ok?'✅ token matches':'❌ token mismatch')+'</p>';}
+</script></body></html>

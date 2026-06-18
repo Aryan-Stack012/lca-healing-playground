@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Validation - heal playground</title>
+<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}code{background:#f3f3f3;padding:1px 5px}</style></head>
+<body><h2>Validation targets</h2>
+<p style="color:#777;font-size:13px"><code>?remove=1</code> removes the promo element &middot; <code>?v=2</code> drifts the status-badge id &middot; <code>?wrong=1</code> shows wrong badge text.</p>
+<p>Total: <span id="total">$100</span></p>
+<div id="optional"></div><div id="badgezone"></div>
+<script>
+var p=new URLSearchParams(location.search),v2=p.get('v')==='2';
+if(!p.has('remove')){document.getElementById('optional').innerHTML='<p id="promo">Promo applied</p>';}
+var bid=v2?'status_v2':'status-badge',txt=p.has('wrong')?'Cancelled':'Confirmed';
+document.getElementById('badgezone').innerHTML='<p>Status: <span id="'+bid+'">'+txt+'</span></p>';
+</script></body></html>
