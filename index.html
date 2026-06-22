@@ -1,401 +1,268 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>document.documentElement.className='js'</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
-<meta name="theme-color" content="#080B14">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23080B14'/%3E%3Cpath d='M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35' fill='none' stroke='%233FE0A6' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
 <style>
 /* ============================================================
-   LCA Self-Healing Playground — diagnostics console
-   Tri-state semaphore: healthy (mint) / drifted (amber) / gone (rose)
+   index.html — hub-specific components.
+   Shared tokens, base, chrome and tri-state live in playground.css.
    ============================================================ */
 
-:root{
-  /* surfaces — deep blue-ink, not pure black */
-  --ink:        #080B14;
-  --ink-2:      #0C111E;
-  --panel:      #111726;
-  --panel-2:    #151D30;
-  --line:       #233048;
-  --line-soft:  #1A2336;
-
-  /* text */
-  --text:       #E8EDF7;
-  --muted:      #8A97AE;
-  --faint:      #5E6A82;
-
-  /* tri-state — the heal state machine, the heart of the brief */
-  --healthy:    #3FE0A6;   /* mint  — locators intact */
-  --drift:      #F6B53C;   /* amber — broken but healable */
-  --gone:       #FF6478;   /* rose  — removed, unhealable */
-
-  /* interaction / AI accent */
-  --signal:     #5BC8FF;
-  --signal-dim: rgba(91,200,255,.16);
-
-  --healthy-dim: rgba(63,224,166,.14);
-  --drift-dim:   rgba(246,181,60,.14);
-  --gone-dim:    rgba(255,100,120,.14);
-
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-body:    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-
-  --maxw: 1120px;
-  --r: 14px;
+/* a quiet instrument graticule reused on every panel */
+.gridded{
+  background-color:var(--panel);
+  background-image:
+    linear-gradient(var(--hairline-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hairline-grid) 1px, transparent 1px);
+  background-size:44px 44px;
 }
 
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;
-  background:
-    radial-gradient(1100px 600px at 78% -8%, rgba(91,200,255,.07), transparent 60%),
-    radial-gradient(900px 500px at 8% 4%, rgba(63,224,166,.05), transparent 55%),
-    var(--ink);
-  color:var(--text);
-  font-family:var(--font-body);
-  line-height:1.55;
-  -webkit-font-smoothing:antialiased;
-  font-feature-settings:"tnum" 1, "cv05" 1;
-}
-a{color:var(--signal);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:6px}
-
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
-
-.mono{font-family:var(--font-mono)}
-.eyebrow{
-  font-family:var(--font-mono);
-  font-size:11px;font-weight:500;
-  letter-spacing:.22em;text-transform:uppercase;
-  color:var(--faint);
-}
-
-/* ---------- top bar ---------- */
-.topbar{
-  position:sticky;top:0;z-index:30;
-  background:rgba(8,11,20,.72);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--line-soft);
-}
-.topbar__in{
-  display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:14px 22px;max-width:var(--maxw);margin:0 auto;
-}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand__mark{flex:none;width:34px;height:34px;display:block}
-.brand__txt{display:flex;flex-direction:column;line-height:1.1;min-width:0}
-.brand__name{font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.01em;white-space:nowrap}
-.brand__sub{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
-
-/* compact live flag chip in the bar */
-.flagchip{
-  display:inline-flex;align-items:center;gap:9px;
-  padding:7px 13px;border-radius:999px;
-  border:1px solid var(--line);
-  background:var(--panel);
-  font-family:var(--font-mono);font-size:12px;font-weight:500;
-  white-space:nowrap;
-  transition:border-color .35s, background .35s;
-}
-.flagchip__dot{width:9px;height:9px;border-radius:50%;background:var(--faint);box-shadow:0 0 0 0 transparent;flex:none}
-.flagchip__label{color:var(--muted)}
-.flagchip__state{color:var(--text);letter-spacing:.02em}
-
-/* state-driven coloring, applied to [data-state] containers */
-[data-state="healthy"]{--state:var(--healthy);--state-dim:var(--healthy-dim)}
-[data-state="drift"]  {--state:var(--drift);  --state-dim:var(--drift-dim)}
-[data-state="gone"]   {--state:var(--gone);   --state-dim:var(--gone-dim)}
-[data-state]{--state:var(--faint);--state-dim:rgba(94,106,130,.14)}
-[data-state="healthy"],[data-state="drift"],[data-state="gone"]{}
-
-.flagchip[data-state] .flagchip__dot{background:var(--state);box-shadow:0 0 10px var(--state)}
-.flagchip[data-state]{border-color:color-mix(in srgb, var(--state) 45%, var(--line))}
-.flagchip[data-state] .flagchip__state{color:var(--state)}
-
-/* ---------- hero / sections ---------- */
-main{padding:40px 0 80px}
-.hero-head{max-width:760px;margin:14px 0 26px}
+/* ---------- hero ---------- */
+.hero{display:grid; grid-template-columns:1fr; gap:var(--s6); align-items:end; margin:var(--s5) 0 var(--s7)}
+@media (min-width:980px){ .hero{grid-template-columns:minmax(0,1fr) auto} }
+.hero-head{max-width:56ch}
 .hero-head h1{
-  font-family:var(--font-display);
-  font-weight:600;
-  font-size:clamp(30px,5.4vw,52px);
-  line-height:1.02;letter-spacing:-.02em;
-  margin:14px 0 14px;
+  font-family:var(--font-display); font-weight:700;
+  font-size:var(--fs-700); line-height:1.02; letter-spacing:var(--track-tight);
+  margin:var(--s3) 0;
 }
 .hero-head h1 .accent{color:var(--healthy)}
-.hero-head p{font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:62ch;margin:0}
-.hero-head .key{color:var(--text);font-weight:500}
+.hero-head p{font-size:var(--fs-300); color:var(--muted); max-width:56ch; margin:0}
+.hero-head .key{color:var(--text); font-weight:500}
 
-/* ---------- the monitor (signature element) ---------- */
+.legend{display:flex; flex-direction:column; gap:var(--s2); min-width:236px;
+  border:1px solid var(--line); border-radius:var(--r-sm); background:var(--panel); box-shadow:var(--e1); padding:var(--s4)}
+.legend__row{display:grid; grid-template-columns:auto auto 1fr; align-items:center; gap:var(--s3)}
+.legend__dot{width:10px; height:10px; border-radius:50%; background:var(--state); box-shadow:0 0 8px var(--state)}
+.legend__k{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.08em; text-transform:uppercase; color:var(--text)}
+.legend__v{font-size:var(--fs-75); color:var(--muted); text-align:right}
+
+/* ---------- monitor (signature) ---------- */
+.cluster{margin-bottom:var(--s5)}
 .monitor{
-  border:1px solid var(--line);
-  border-radius:var(--r);
+  border:1px solid var(--line); border-radius:var(--r);
   background:linear-gradient(180deg,var(--panel) 0%, var(--ink-2) 100%);
-  overflow:hidden;
-  box-shadow:0 24px 60px -32px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
+  overflow:hidden; box-shadow:var(--e2);
 }
 .monitor__bezel{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:13px 18px;border-bottom:1px solid var(--line-soft);
+  display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  padding:var(--s3) var(--s5); border-bottom:1px solid var(--line-soft);
   background:linear-gradient(180deg, rgba(255,255,255,.025), transparent);
 }
-.bezel__id{display:flex;align-items:center;gap:10px}
-.bezel__id .dotrow{display:flex;gap:5px}
-.bezel__id .dotrow i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block}
-.live{
-  display:inline-flex;align-items:center;gap:8px;
-  font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
-}
-.live i{width:8px;height:8px;border-radius:50%;background:var(--state,var(--faint));box-shadow:0 0 8px var(--state,transparent)}
+.bezel__id{display:flex; align-items:center; gap:var(--s3)}
+.bezel__id .dotrow{display:flex; gap:5px}
+.bezel__id .dotrow i{width:7px; height:7px; border-radius:50%; background:var(--line-strong); display:block}
 
-/* the oscilloscope screen */
 .screen{
-  position:relative;
-  height:clamp(220px,34vw,300px);
-  background:
-    radial-gradient(120% 140% at 50% 0%, rgba(255,255,255,.035), transparent 55%),
-    #060912;
-  overflow:hidden;
+  position:relative; height:clamp(220px,34vw,300px);
+  background:radial-gradient(120% 140% at 50% 0%, rgba(255,255,255,.035), transparent 55%), #05080F;
+  overflow:hidden; animation:boot .55s ease-out 1;
 }
-/* graticule grid */
-.screen::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
+@keyframes boot{0%{filter:brightness(.45)}20%{filter:brightness(1.12)}45%{filter:brightness(.85)}100%{filter:brightness(1)}}
+.screen::before{ /* graticule */
+  content:""; position:absolute; inset:0; pointer-events:none;
   background-image:
     linear-gradient(rgba(130,150,180,.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(130,150,180,.06) 1px, transparent 1px);
   background-size:44px 44px;
   mask-image:radial-gradient(130% 120% at 50% 50%, #000 60%, transparent 100%);
 }
-/* center reference line */
-.screen::after{
-  content:"";position:absolute;left:0;right:0;top:50%;height:1px;
+.screen::after{ /* center reference */
+  content:""; position:absolute; left:0; right:0; top:50%; height:1px;
   background:linear-gradient(90deg,transparent,rgba(130,150,180,.18),transparent);
 }
-.wave{position:absolute;inset:0;width:200%;height:100%;display:block}
-.wave path{
-  fill:none;
-  stroke:var(--state,var(--signal));
-  stroke-width:2.4;
-  stroke-linecap:round;stroke-linejoin:round;
-  vector-effect:non-scaling-stroke;
-  filter:drop-shadow(0 0 7px var(--state,var(--signal)));
-  transition:stroke .5s ease;
-}
-.screen[data-state="healthy"] .wave{animation:scope 9s linear infinite}
-.screen[data-state="drift"]   .wave{animation:scope 4.2s linear infinite}
-.screen[data-state="gone"]    .wave{animation:none}
+.screen[data-state="gone"]{box-shadow:inset 0 0 120px -18px rgba(255,126,140,.22)}
+
+/* scope chrome — axis ticks + timebase (decorative) */
+.scope-chrome{position:absolute; inset:0; pointer-events:none; font-family:var(--font-mono); font-size:9px; letter-spacing:.1em; color:var(--faint); opacity:.6}
+.scope-chrome .ax{position:absolute; left:8px}
+.scope-chrome .ax.t{top:8px}.scope-chrome .ax.m{top:50%; transform:translateY(-50%)}.scope-chrome .ax.b{bottom:8px}
+.scope-chrome .tb{position:absolute; left:8px; bottom:8px}
+.scope-chrome .ax.b{left:auto; right:8px}
+
+.wave{position:absolute; inset:0; width:200%; height:100%; display:block}
+.wave path{fill:none; stroke:var(--state,var(--signal)); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke}
+#wavePathOut{opacity:0}
+.screen[data-state="healthy"] .wave path{filter:drop-shadow(0 0 6px var(--state))}
+.screen[data-state="drift"]   .wave path{filter:drop-shadow(0 0 10px var(--state)) drop-shadow(0 0 22px var(--state-dim))}
+.screen[data-state="gone"]    .wave path{filter:drop-shadow(0 0 3px var(--state))}
+.screen[data-state="healthy"] #wavePath{animation:scope 9s linear infinite}
+.screen[data-state="drift"]   #wavePath{animation:scope 4.2s linear infinite}
+.screen[data-state="gone"]    #wavePath{animation:none}
 @keyframes scope{to{transform:translateX(-50%)}}
 
-/* boot flicker, once */
-.screen{animation:boot .7s ease-out 1}
-@keyframes boot{0%{filter:brightness(.2)}18%{filter:brightness(1.5)}26%{filter:brightness(.6)}40%{filter:brightness(1.25)}100%{filter:brightness(1)}}
-
-/* readout overlay on the screen */
-.readout{position:absolute;left:22px;bottom:18px;right:22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:none}
+.readout{position:absolute; left:var(--s5); bottom:var(--s4); right:var(--s5); display:flex; align-items:flex-end; justify-content:space-between; gap:var(--s4); pointer-events:none}
 .readout__state{
-  font-family:var(--font-display);font-weight:600;
-  font-size:clamp(34px,7vw,64px);line-height:.9;letter-spacing:-.02em;
-  color:var(--state,var(--text));
-  text-shadow:0 0 26px color-mix(in srgb, var(--state,#fff) 45%, transparent);
+  font-family:var(--font-mono); font-weight:700;
+  font-size:clamp(30px,6.4vw,52px); line-height:.92; letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums; color:var(--state,var(--text));
+  text-shadow:0 0 22px color-mix(in srgb, var(--state,#fff) 38%, transparent);
 }
-.readout__src{
-  font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;
-  color:var(--muted);text-align:right;white-space:nowrap;
-  padding-bottom:6px;
-}
-.readout__src b{color:var(--state,var(--text));font-weight:500}
+.screen[data-state="gone"] .readout__state{text-shadow:0 0 9px color-mix(in srgb, var(--state) 30%, transparent)}
+.readout__state.enter{animation:readoutIn .42s var(--ease)}
+@keyframes readoutIn{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
+.readout__src{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.04em; color:var(--muted); text-align:right; white-space:nowrap; padding-bottom:6px}
+.readout__src b{color:var(--state,var(--text)); font-weight:500}
 
-/* plate beneath the screen */
-.monitor__plate{
-  display:flex;align-items:center;gap:14px;
-  padding:15px 18px;border-top:1px solid var(--line-soft);
-  background:var(--panel);
-}
-.plate__pulse{flex:none;width:10px;height:10px;border-radius:50%;background:var(--state,var(--faint));box-shadow:0 0 12px var(--state,transparent)}
-.meaning{margin:0;font-size:14.5px;color:var(--text)}
+.monitor__plate{display:flex; align-items:center; gap:var(--s3); padding:var(--s4) var(--s5); border-top:1px solid var(--line-soft); background:var(--panel)}
+.plate__pulse{flex:none; width:10px; height:10px; border-radius:50%; background:var(--state,var(--faint)); box-shadow:0 0 12px var(--state,transparent); animation:livePulse 2.4s ease-in-out infinite}
+.meaning{margin:0; font-size:var(--fs-200); color:var(--text)}
 .meaning span{color:var(--muted)}
+@keyframes livePulse{0%,100%{box-shadow:0 0 6px var(--state,transparent)}50%{box-shadow:0 0 13px var(--state,transparent)}}
+.live i{animation:livePulse 2.4s ease-in-out infinite; --state:var(--signal)}
 
-/* ---------- control row (resolution order + toggles) ---------- */
-.controls{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px}
-.card{
-  border:1px solid var(--line);border-radius:var(--r);
-  background:var(--panel);padding:18px 18px 16px;
-}
-.card > h3{
-  font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--faint);margin:0 0 14px;
-}
+/* ---------- controls ---------- */
+.controls{display:grid; grid-template-columns:1.15fr .85fr; gap:var(--s4); margin-top:var(--s4)}
+@media (max-width:980px){ .controls{grid-template-columns:1fr} }
+.card{border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--e1); padding:var(--s5)}
+.card > h3{font-family:var(--font-mono); font-size:var(--fs-50); font-weight:500; letter-spacing:var(--track-label); text-transform:uppercase; color:var(--faint); margin:0 0 var(--s4)}
 
-/* resolution order: first match wins */
-.reso{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
-.reso__node{
-  flex:1 1 0;min-width:0;
-  border:1px solid var(--line);border-radius:10px;
-  background:var(--ink-2);padding:11px 12px;
-  display:flex;flex-direction:column;gap:3px;
-  transition:border-color .3s, background .3s, box-shadow .3s;
-}
-.reso__k{font-family:var(--font-mono);font-size:12.5px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.reso__v{font-size:11px;color:var(--faint)}
-.reso__arrow{align-self:center;color:var(--faint);font-size:15px;flex:none}
-.reso__node.is-active{
-  border-color:var(--state,var(--signal));
-  background:var(--state-dim,var(--signal-dim));
-  box-shadow:0 0 0 1px var(--state,var(--signal)) inset;
-}
+.reso{display:flex; align-items:stretch; gap:var(--s2); flex-wrap:wrap}
+.reso__node{flex:1 1 0; min-width:0; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--ink-2); padding:var(--s3); display:flex; flex-direction:column; gap:3px; transition:border-color .3s var(--ease), background .3s var(--ease), box-shadow .3s var(--ease)}
+.reso__k{font-family:var(--font-mono); font-size:var(--fs-75); font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.reso__v{font-size:var(--fs-50); color:var(--faint)}
+.reso__arrow{align-self:center; color:var(--faint); font-size:15px; flex:none}
+.reso__node.is-active{border-color:var(--state,var(--signal)); background:var(--state-dim,var(--signal-dim)); box-shadow:0 0 0 1px var(--state,var(--signal)) inset}
 .reso__node.is-active .reso__v{color:var(--state,var(--signal))}
-.reso__note{margin:12px 0 0;font-size:12.5px;color:var(--muted)}
-.reso__note code{font-family:var(--font-mono);font-size:12px;background:var(--ink);padding:1px 6px;border-radius:5px;color:var(--text)}
+.reso__note{margin:var(--s3) 0 0; font-size:var(--fs-75); color:var(--muted)}
+.reso__note code{font-family:var(--font-mono); font-size:var(--fs-75); background:var(--ink); padding:1px 6px; border-radius:5px; color:var(--text)}
 
-/* override switch */
-.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px}
-.switch-row label{font-size:14px;font-weight:500;cursor:pointer}
-.switch{position:relative;width:50px;height:28px;flex:none}
-.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
-.switch .track{
-  position:absolute;inset:0;border-radius:999px;background:var(--ink);
-  border:1px solid var(--line);transition:background .25s, border-color .25s;
-}
-.switch .knob{
-  position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
-  background:var(--muted);transition:transform .25s cubic-bezier(.3,1.4,.5,1), background .25s;
-}
-.switch input:checked + .track{background:var(--drift-dim);border-color:var(--drift)}
-.switch input:checked + .track .knob{transform:translateX(22px);background:var(--drift);box-shadow:0 0 10px var(--drift)}
-.switch-help{font-size:12.5px;color:var(--muted);margin:0}
-.switch-help code{font-family:var(--font-mono);font-size:11.5px;background:var(--ink);padding:1px 6px;border-radius:5px;color:var(--text)}
-.switch-note{font-size:12px;color:var(--drift);margin:8px 0 0;display:none;font-family:var(--font-mono)}
+.switch-row{display:flex; align-items:center; justify-content:space-between; gap:var(--s3); margin-bottom:var(--s1)}
+.switch-row label{font-size:var(--fs-200); font-weight:500; cursor:pointer}
+.switch{position:relative; width:50px; height:28px; flex:none}
+.switch input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer}
+.switch input:disabled{cursor:not-allowed}
+.switch .track{position:absolute; inset:0; border-radius:var(--r-pill); background:var(--ink); border:1px solid var(--line); transition:background .25s var(--ease), border-color .25s var(--ease)}
+.switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--muted); transition:transform .25s cubic-bezier(.3,1.4,.5,1), background .25s var(--ease)}
+.switch input:checked + .track{background:var(--drift-dim); border-color:var(--drift)}
+.switch input:checked + .track .knob{transform:translateX(22px); background:var(--drift); box-shadow:0 0 10px var(--drift)}
+.switch input:disabled + .track{opacity:.5}
+.switch-help{font-size:var(--fs-75); color:var(--muted); margin:0}
+.switch-help code{font-family:var(--font-mono); font-size:var(--fs-75); background:var(--ink); padding:1px 6px; border-radius:5px; color:var(--text)}
+.switch-note{font-size:var(--fs-75); color:var(--drift); margin:var(--s2) 0 0; display:none; font-family:var(--font-mono)}
 .switch-note.show{display:block}
 
-.toggle-shared{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-soft)}
-.toggle-shared p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
-.toggle-shared .cmd{
-  font-family:var(--font-mono);font-size:12px;color:var(--text);
-  background:var(--ink);border:1px solid var(--line-soft);border-radius:8px;
-  padding:8px 10px;display:flex;flex-wrap:wrap;gap:4px 10px;
-}
-.toggle-shared .cmd b{color:var(--healthy);font-weight:500}
+.toggle-shared{margin-top:var(--s4); padding-top:var(--s4); border-top:1px dashed var(--line-soft)}
+.toggle-shared p{margin:0 0 var(--s2); font-size:var(--fs-75); color:var(--muted)}
+.toggle-shared .cmd{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--text); background:var(--ink); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:var(--s2) var(--s3); display:flex; flex-wrap:wrap; gap:4px 10px}
+.toggle-shared .cmd b{color:var(--healthy); font-weight:500}
 .toggle-shared .cmd .on{color:var(--drift)}
 .toggle-shared .cmd .gone{color:var(--gone)}
 
-/* ---------- section headers ---------- */
-.section{margin-top:56px}
-.section__head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.section__head h2{font-family:var(--font-display);font-weight:600;font-size:clamp(20px,3vw,26px);letter-spacing:-.01em;margin:0}
-.section__head .count{font-family:var(--font-mono);font-size:12px;color:var(--faint);letter-spacing:.1em}
+/* ---------- sections ---------- */
+.section{margin-top:var(--s9); position:relative}
+.section + .section{margin-top:var(--s9)}
+.section__head{display:flex; align-items:baseline; justify-content:space-between; gap:var(--s4); flex-wrap:wrap; margin-bottom:var(--s5)}
+.section__head h2{font-family:var(--font-display); font-weight:600; font-size:var(--fs-500); letter-spacing:-.01em; margin:0}
+.section__head .count{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--faint); letter-spacing:.1em; font-variant-numeric:tabular-nums}
 
 /* ---------- scenario cards ---------- */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:var(--s3)}
 .scn{
-  position:relative;display:flex;flex-direction:column;gap:0;
-  border:1px solid var(--line);border-radius:var(--r);
-  background:var(--panel);padding:0;
-  text-decoration:none;color:inherit;overflow:hidden;
-  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  position:relative; display:grid; grid-template-rows:auto auto 1fr auto auto;
+  border:1px solid var(--line); border-radius:var(--r-sm);
+  background-color:var(--panel);
+  background-image:linear-gradient(var(--hairline-grid) 1px, transparent 1px), linear-gradient(90deg, var(--hairline-grid) 1px, transparent 1px);
+  background-size:44px 44px;
+  box-shadow:var(--e1); text-decoration:none; color:inherit; overflow:hidden;
+  transition:transform .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
-.scn:hover{transform:translateY(-3px);border-color:color-mix(in srgb, var(--state) 55%, var(--line));box-shadow:0 18px 36px -22px rgba(0,0,0,.9);text-decoration:none}
-.scn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--state);opacity:.85}
-.scn__top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 16px 8px}
-.scn__file{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
-.scn__tag{
-  font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--state);background:var(--state-dim);border:1px solid color-mix(in srgb,var(--state) 40%, transparent);
-  padding:2px 8px;border-radius:999px;white-space:nowrap;
+.scn::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--state); opacity:.85; transition:width .2s var(--ease), opacity .2s var(--ease)}
+@media (hover:hover){
+  .scn:hover{transform:translateY(-2px); border-color:color-mix(in srgb, var(--state) 55%, var(--line)); box-shadow:var(--e2)}
+  .scn:hover::before{width:5px; opacity:1}
+  .scn:hover .scn__go{color:var(--state)}
+  .scn:hover .scn__wave path{filter:drop-shadow(0 0 4px var(--state))}
+  .scn:hover .scn__go .arr{transform:translateX(3px)}
 }
-.scn__title{font-family:var(--font-display);font-weight:600;font-size:17px;margin:2px 16px 6px;letter-spacing:-.01em}
-.scn__desc{margin:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.5;flex:1}
-.scn__params{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 15px}
-.scn__params code{font-family:var(--font-mono);font-size:11px;color:var(--text);background:var(--ink);border:1px solid var(--line-soft);border-radius:6px;padding:2px 7px}
-.scn__go{padding:0 16px 15px;font-family:var(--font-mono);font-size:11px;color:var(--faint);display:flex;align-items:center;gap:6px}
-.scn:hover .scn__go{color:var(--state)}
+.scn:focus-visible{border-color:color-mix(in srgb, var(--state) 55%, var(--line)); box-shadow:var(--e2)}
+.scn:focus-visible .scn__go{color:var(--state)}
+.scn__top{display:flex; align-items:center; justify-content:space-between; gap:var(--s3); padding:var(--s4) var(--s4) var(--s2)}
+.scn__file{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--muted)}
+.scn__meta{display:inline-flex; align-items:center; gap:var(--s2)}
+.scn__wave{display:block; width:56px; height:16px; opacity:.85}
+.scn__wave path{fill:none; stroke:var(--state); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
+.scn__tag{font-family:var(--font-mono); font-size:10px; letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--state); background:var(--state-dim); border:1px solid color-mix(in srgb,var(--state) 40%, transparent); padding:2px 8px; border-radius:var(--r-pill); white-space:nowrap}
+.scn[data-state="config"] .scn__tag{border-style:dashed}
+.scn__title{font-family:var(--font-display); font-weight:600; font-size:var(--fs-300); margin:2px var(--s4) var(--s2); letter-spacing:-.01em}
+.scn__desc{margin:0 var(--s4) var(--s3); font-size:var(--fs-100); color:var(--muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; max-height:calc(1.5em * 3)}
+.scn__params{display:flex; flex-wrap:wrap; gap:6px; padding:0 var(--s4); min-height:6px}
+.scn__params code{font-family:var(--font-mono); font-size:11px; color:var(--text); background:var(--ink); border:1px solid var(--line-soft); border-radius:6px; padding:2px 7px}
+.scn__go{padding:var(--s3) var(--s4) var(--s4); font-family:var(--font-mono); font-size:var(--fs-50); color:var(--faint); display:flex; align-items:center; gap:6px; letter-spacing:.06em; text-transform:uppercase}
+.scn__go .arr{display:inline-block; transition:transform .2s var(--ease)}
 
 /* ---------- case matrix ---------- */
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
-.search{
-  flex:1 1 220px;min-width:180px;
-  font-family:var(--font-mono);font-size:13px;color:var(--text);
-  background:var(--panel);border:1px solid var(--line);border-radius:10px;
-  padding:9px 13px;
-}
+.filters{display:flex; flex-wrap:wrap; gap:var(--s2); align-items:center; margin-bottom:var(--s4)}
+.search{flex:1 1 220px; min-width:180px; font-family:var(--font-mono); font-size:var(--fs-100); color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:var(--r-sm); padding:var(--s3) var(--s4)}
 .search::placeholder{color:var(--faint)}
-.chip{
-  font-family:var(--font-mono);font-size:12px;
-  background:var(--panel);border:1px solid var(--line);color:var(--muted);
-  padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
-  transition:all .18s ease;
-}
-.chip:hover{border-color:var(--faint);color:var(--text)}
-.chip[aria-pressed="true"]{background:var(--text);color:var(--ink);border-color:var(--text);font-weight:500}
-.chip .n{opacity:.55;margin-left:5px}
-.chip[data-f="heals"][aria-pressed="true"]{background:var(--healthy);border-color:var(--healthy);color:#04231a}
-.chip[data-f="noheal"][aria-pressed="true"]{background:var(--gone);border-color:var(--gone);color:#2c0710}
-.chip[data-f="mixed"][aria-pressed="true"]{background:var(--drift);border-color:var(--drift);color:#2c1c02}
-.chip[data-f="app"][aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#04202c}
+.chip{font-family:var(--font-mono); font-size:var(--fs-75); background:var(--panel); border:1px solid var(--line); color:var(--muted); padding:7px var(--s3); border-radius:var(--r-pill); cursor:pointer; white-space:nowrap; transition:background-color .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease)}
+.chip:hover{border-color:var(--line-strong); color:var(--text)}
+.chip:active{transform:scale(.96); transition:transform .08s ease}
+.chip[aria-pressed="true"]{background:var(--text); color:var(--ink); border-color:var(--text); font-weight:500}
+.chip .n{opacity:.55; margin-left:5px; font-variant-numeric:tabular-nums}
+.chip[data-f="heals"][aria-pressed="true"]{background:var(--healthy); border-color:var(--healthy); color:#04231a}
+.chip[data-f="noheal"][aria-pressed="true"]{background:var(--gone); border-color:var(--gone); color:#2c0710}
+.chip[data-f="mixed"][aria-pressed="true"]{background:var(--drift); border-color:var(--drift); color:#2c1c02}
+.chip[data-f="app"][aria-pressed="true"]{background:var(--config); border-color:var(--config); color:#0a0f18}
 
-.tablewrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
-.tablescroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
-thead th{
-  position:sticky;top:0;background:var(--ink-2);
-  font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
-  text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);
+.tablewrap{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--e1);
+  background-color:var(--panel);
+  background-image:linear-gradient(var(--hairline-grid) 1px, transparent 1px), linear-gradient(90deg, var(--hairline-grid) 1px, transparent 1px);
+  background-size:44px 44px;
 }
-tbody td{padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--muted)}
-tbody tr:last-child td{border-bottom:none}
-tbody tr{transition:background .15s}
+.tablescroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:680px; font-size:var(--fs-100); font-variant-numeric:tabular-nums}
+thead th{position:sticky; top:0; background:var(--ink-2); font-family:var(--font-mono); font-size:var(--fs-50); font-weight:500; letter-spacing:var(--track-label); text-transform:uppercase; color:var(--faint); text-align:left; padding:var(--s2) var(--s4); border-bottom:1px solid color-mix(in srgb, var(--signal) 16%, var(--line))}
+tbody td{padding:var(--s3) var(--s4); border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--muted)}
+tbody tr:nth-child(even){background:rgba(255,255,255,.014)}
 tbody tr:hover{background:var(--ink-2)}
-.c-case{font-family:var(--font-mono);font-weight:500;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:9px}
-.c-case .pip{width:8px;height:8px;border-radius:50%;flex:none}
+.c-case{font-family:var(--font-mono); font-weight:500; color:var(--text); white-space:nowrap; display:flex; align-items:center; gap:9px}
+.c-case .pip{width:8px; height:8px; border-radius:50%; flex:none}
 .pip.heals{background:var(--healthy)}
 .pip.noheal{background:var(--gone)}
 .pip.mixed{background:var(--drift)}
-.pip.app{background:var(--signal)}
+.pip.app{background:var(--config)}
 .c-page{white-space:normal}
-.c-page code, .c-page a{font-family:var(--font-mono);font-size:12.5px;background:var(--ink);border:1px solid var(--line-soft);border-radius:6px;padding:2px 7px;color:var(--text);display:inline-block;margin:1px 0}
-.c-page a:hover{border-color:var(--signal);text-decoration:none}
-.c-how{color:var(--muted);max-width:60ch}
-.noresults{padding:34px 16px;text-align:center;color:var(--faint);font-family:var(--font-mono);font-size:13px}
+.c-page code, .c-page a{font-family:var(--font-mono); font-size:var(--fs-75); background:var(--ink); border:1px solid var(--line-soft); border-radius:6px; padding:2px 7px; color:var(--text); display:inline-block; margin:1px 0}
+.c-page a:hover{border-color:var(--signal); text-decoration:none}
+.c-how{color:var(--muted); max-width:62ch}
+.noresults{padding:34px var(--s4); text-align:center; color:var(--faint); font-family:var(--font-mono); font-size:var(--fs-100)}
 
-/* ---------- footer ---------- */
-.foot{margin-top:64px;border-top:1px solid var(--line-soft);padding:26px 0 10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
-.foot p{margin:0;font-size:13px;color:var(--faint)}
-.foot .pillrow{display:flex;gap:8px;flex-wrap:wrap}
-.foot a.pill{font-family:var(--font-mono);font-size:12px;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--muted)}
-.foot a.pill:hover{border-color:var(--signal);color:var(--signal);text-decoration:none}
+/* ---------- footer (recessed reference material) ---------- */
+.foot{margin-top:var(--s8); border-top:1px solid var(--line-soft); padding:var(--s5) 0 var(--s3); display:flex; flex-wrap:wrap; gap:var(--s3); align-items:center; justify-content:space-between}
+.foot p{margin:0; font-size:var(--fs-100); color:var(--faint)}
+.foot .pillrow{display:flex; gap:var(--s2); flex-wrap:wrap}
+.foot a.pill{font-family:var(--font-mono); font-size:var(--fs-75); border:1px solid var(--line); border-radius:var(--r-sm); padding:6px 11px; color:var(--muted)}
+.foot a.pill:hover{border-color:var(--signal); color:var(--signal); text-decoration:none}
 
-/* ---------- entrance ---------- */
-.reveal{opacity:0;transform:translateY(16px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
-@keyframes rise{to{opacity:1;transform:none}}
+/* ---------- entrance (JS-gated so no-JS shows everything) ---------- */
+.js .reveal{opacity:0; transform:translateY(16px); transition:opacity .6s var(--ease), transform .6s var(--ease)}
+.reveal.in{opacity:1; transform:none}
 
-/* ---------- responsive ---------- */
 @media (max-width:760px){
-  .controls{grid-template-columns:1fr}
-  .readout{position:static;padding:16px 18px 4px;flex-direction:column;align-items:flex-start;gap:6px}
-  .readout__src{text-align:left;padding-bottom:0}
-  .screen{height:auto;min-height:170px}
+  .readout{position:static; padding:var(--s4) var(--s5) var(--s1); flex-direction:column; align-items:flex-start; gap:var(--s2)}
+  .readout__src{text-align:left; padding-bottom:0}
+  .screen{height:auto; min-height:176px}
+  .scope-chrome{display:none}
   .reso{flex-direction:column}
   .reso__arrow{transform:rotate(90deg)}
   .reso__node{flex:1 1 auto}
 }
-
-@media (prefers-reduced-motion: reduce){
-  .reveal{animation:none;opacity:1;transform:none}
-  .wave{animation:none !important}
-  .screen{animation:none}
-  *{scroll-behavior:auto !important}
-}
 </style>
 </head>
 <body>
+
+<a href="#main" class="skip">Skip to content</a>
 
 <header class="topbar">
   <div class="topbar__in">
@@ -417,107 +284,122 @@ tbody tr:hover{background:var(--ink-2)}
   </div>
 </header>
 
-<main class="wrap">
+<main id="main" tabindex="-1" class="wrap">
 
-  <div class="hero-head reveal">
-    <span class="eyebrow">Agentic test target · same URL throughout</span>
-    <h1>Break a locator on demand.<br>Watch the heal <span class="accent">fire</span>.</h1>
-    <p>Record an agentic test once, then flip a single shared flag to drift the captured locator — <span class="key">no URL change</span>. Re-run the same saved test and the heal either recovers it, refuses it, or runs out of budget.</p>
-  </div>
+  <section class="hero reveal in" aria-labelledby="heroH1">
+    <div class="hero-head">
+      <span class="eyebrow">Agentic test target · same URL throughout</span>
+      <h1 id="heroH1">Break a locator on demand.<br>Watch the heal <span class="accent">fire</span>.</h1>
+      <p>Record an agentic test once, then flip a single shared flag to drift the captured locator — <span class="key">no URL change</span>. Re-run the same saved test and the heal either recovers it, refuses it, or runs out of budget.</p>
+    </div>
+    <aside class="legend" aria-label="What the three states mean">
+      <div class="legend__row"><span class="legend__dot" data-state="healthy"></span><span class="legend__k">healthy</span><span class="legend__v">locators intact</span></div>
+      <div class="legend__row"><span class="legend__dot" data-state="drift"></span><span class="legend__k">drifted</span><span class="legend__v">heal must fire</span></div>
+      <div class="legend__row"><span class="legend__dot" data-state="gone"></span><span class="legend__k">unhealable</span><span class="legend__v">budget exhausts</span></div>
+    </aside>
+  </section>
 
   <!-- SIGNATURE: live oscilloscope reading the real break flag -->
-  <section class="monitor reveal" style="animation-delay:.05s" aria-label="Live heal-signal monitor">
-    <div class="monitor__bezel">
-      <span class="bezel__id">
-        <span class="dotrow"><i></i><i></i><i></i></span>
-        <span class="eyebrow">Heal signal · CH-01</span>
-      </span>
-      <span class="live" id="liveTag"><i></i> live</span>
-    </div>
-    <div class="screen" id="screen" data-state="">
-      <svg class="wave" id="wave" viewBox="0 0 2400 220" preserveAspectRatio="none" aria-hidden="true">
-        <path id="wavePath" d=""></path>
-      </svg>
-      <div class="readout">
-        <div class="readout__state" id="stateWord">———</div>
-        <div class="readout__src" id="stateSrc">resolving via <b>flag.json</b></div>
+  <section class="cluster reveal in" aria-labelledby="clusterH">
+    <h2 id="clusterH" class="sr-only">Live break state and controls</h2>
+    <div class="monitor" aria-label="Live heal-signal monitor">
+      <div class="monitor__bezel">
+        <span class="bezel__id">
+          <span class="dotrow"><i></i><i></i><i></i></span>
+          <span class="eyebrow">Heal signal · CH-01</span>
+        </span>
+        <span class="live" id="liveTag"><i></i> live</span>
+      </div>
+      <div class="screen" id="screen" data-state="healthy">
+        <svg class="wave" id="wave" viewBox="0 0 2400 220" preserveAspectRatio="none" aria-hidden="true">
+          <path id="wavePathOut" d=""></path>
+          <path id="wavePath" d=""></path>
+        </svg>
+        <div class="scope-chrome" aria-hidden="true">
+          <span class="ax t">+1.0</span><span class="ax m">0</span><span class="ax b">−1.0</span>
+          <span class="tb">timebase 200 ms/div</span>
+        </div>
+        <div class="readout">
+          <div class="readout__state" id="stateWord">———</div>
+          <div class="readout__src" id="stateSrc">resolving via <b>flag.json</b></div>
+        </div>
+      </div>
+      <div class="monitor__plate" id="plate" data-state="healthy">
+        <span class="plate__pulse"></span>
+        <p class="meaning" id="stateMeaning">Reading the current break flag for this URL…</p>
       </div>
     </div>
-    <div class="monitor__plate" id="plate" data-state="">
-      <span class="plate__pulse"></span>
-      <p class="meaning" id="stateMeaning">Reading the current break flag for this URL…</p>
+
+    <div class="controls">
+      <div class="card gridded" id="resoCard" data-state="">
+        <h3>Resolution order · first match wins</h3>
+        <div class="reso">
+          <div class="reso__node" id="reso-url">
+            <span class="reso__k">URL ?v=2 / ?gone</span>
+            <span class="reso__v">per-tab, manual</span>
+          </div>
+          <span class="reso__arrow" aria-hidden="true">›</span>
+          <div class="reso__node" id="reso-local">
+            <span class="reso__k">localStorage</span>
+            <span class="reso__v">this browser</span>
+          </div>
+          <span class="reso__arrow" aria-hidden="true">›</span>
+          <div class="reso__node" id="reso-flag">
+            <span class="reso__k">flag.json</span>
+            <span class="reso__v">shared · all runs</span>
+          </div>
+        </div>
+        <p class="reso__note">This is exactly what <code>flag.js</code> resolves on every page — so a saved test never re-records just to change the break.</p>
+      </div>
+
+      <div class="card gridded">
+        <h3>Toggle the break</h3>
+        <div class="switch-row">
+          <label for="ov">Arm break in this browser</label>
+          <span class="switch">
+            <input type="checkbox" id="ov" aria-describedby="ovhelp ovNote">
+            <span class="track"><span class="knob"></span></span>
+          </span>
+        </div>
+        <p class="switch-help" id="ovhelp">Writes <code>localStorage.lcaBreak</code>. Drifts every scenario page in this browser only.</p>
+        <p class="switch-note" id="ovNote" role="status">A URL param is overriding this right now.</p>
+        <div class="toggle-shared">
+          <p>Shared flag (every run, ~30–60s to land):</p>
+          <div class="cmd"><b>Actions →</b> toggle-heal → <span class="on">on</span> · off · <span class="gone">gone</span></div>
+          <div class="cmd" style="margin-top:6px">$ ./toggle.sh <span class="on">on</span> | off | <span class="gone">gone</span></div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- control row -->
-  <div class="controls reveal" style="animation-delay:.1s">
-    <div class="card" id="resoCard" data-state="">
-      <h3>Resolution order · first match wins</h3>
-      <div class="reso">
-        <div class="reso__node" id="reso-url">
-          <span class="reso__k">URL ?v=2 / ?gone</span>
-          <span class="reso__v">per-tab, manual</span>
-        </div>
-        <span class="reso__arrow">›</span>
-        <div class="reso__node" id="reso-local">
-          <span class="reso__k">localStorage</span>
-          <span class="reso__v">this browser</span>
-        </div>
-        <span class="reso__arrow">›</span>
-        <div class="reso__node" id="reso-flag">
-          <span class="reso__k">flag.json</span>
-          <span class="reso__v">shared · all runs</span>
-        </div>
-      </div>
-      <p class="reso__note">This is exactly what <code>flag.js</code> resolves on every page — so a saved test never re-records just to change the break.</p>
-    </div>
-
-    <div class="card">
-      <h3>Toggle the break</h3>
-      <div class="switch-row">
-        <label for="ov">Arm break in this browser</label>
-        <span class="switch">
-          <input type="checkbox" id="ov" aria-describedby="ovhelp">
-          <span class="track"><span class="knob"></span></span>
-        </span>
-      </div>
-      <p class="switch-help" id="ovhelp">Writes <code>localStorage.lcaBreak</code>. Drifts every scenario page in this browser only.</p>
-      <p class="switch-note" id="ovNote">A URL param is overriding this right now.</p>
-      <div class="toggle-shared">
-        <p>Shared flag (every run, ~30–60s to land):</p>
-        <div class="cmd"><b>Actions →</b> toggle-heal → <span class="on">on</span> · off · <span class="gone">gone</span></div>
-        <div class="cmd" style="margin-top:6px">$ ./toggle.sh <span class="on">on</span> | off | <span class="gone">gone</span></div>
-      </div>
-    </div>
-  </div>
-
   <!-- scenario pages -->
-  <section class="section reveal" style="animation-delay:.15s">
+  <section class="section reveal" aria-labelledby="scnH">
     <div class="section__head">
-      <h2>Scenario targets</h2>
-      <span class="count" id="scnCount">10 pages</span>
+      <h2 id="scnH">Scenario targets</h2>
+      <span class="count">10 pages</span>
     </div>
     <div class="grid" id="scnGrid"></div>
   </section>
 
   <!-- case matrix -->
-  <section class="section reveal" style="animation-delay:.2s">
+  <section class="section reveal" aria-labelledby="caseH">
     <div class="section__head">
-      <h2>Case matrix</h2>
-      <span class="count" id="caseCount">S1 – S34</span>
+      <h2 id="caseH">Case matrix</h2>
+      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S34</span>
     </div>
-    <div class="filters">
-      <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases">
-      <button class="chip" data-f="all"    aria-pressed="true">All<span class="n" id="n-all"></span></button>
-      <button class="chip" data-f="heals"  aria-pressed="false">Heals<span class="n" id="n-heals"></span></button>
-      <button class="chip" data-f="noheal" aria-pressed="false">Won't heal<span class="n" id="n-noheal"></span></button>
-      <button class="chip" data-f="mixed"  aria-pressed="false">Mixed legs<span class="n" id="n-mixed"></span></button>
-      <button class="chip" data-f="app"    aria-pressed="false">App &amp; config<span class="n" id="n-app"></span></button>
+    <div class="filters" role="group" aria-label="Filter cases by behavior">
+      <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases" aria-controls="caseBody">
+      <button class="chip" data-f="all"    aria-pressed="true"  aria-controls="caseBody">All<span class="n" id="n-all"></span></button>
+      <button class="chip" data-f="heals"  aria-pressed="false" aria-controls="caseBody">Heals<span class="n" id="n-heals"></span></button>
+      <button class="chip" data-f="noheal" aria-pressed="false" aria-controls="caseBody">Won't heal<span class="n" id="n-noheal"></span></button>
+      <button class="chip" data-f="mixed"  aria-pressed="false" aria-controls="caseBody">Mixed legs<span class="n" id="n-mixed"></span></button>
+      <button class="chip" data-f="app"    aria-pressed="false" aria-controls="caseBody">App &amp; config<span class="n" id="n-app"></span></button>
     </div>
     <div class="tablewrap">
       <div class="tablescroll">
         <table>
-          <thead><tr><th style="width:88px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
+          <caption class="sr-only">34 self-healing test cases by target page and expected behavior</caption>
+          <thead><tr><th style="width:84px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
           <tbody id="caseBody"></tbody>
         </table>
       </div>
@@ -532,6 +414,8 @@ tbody tr:hover{background:var(--ink-2)}
       <a class="pill" href="api/todo.json">api/todo.json</a>
     </div>
   </footer>
+
+  <p id="liveState" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
 </main>
 
@@ -590,24 +474,39 @@ var CASES = [
   ["S34","heals","checkout.html",                                "Cloud build: fragile test → 'healing in progress' banner, rerun with healed version, build duration"]
 ];
 
+var ST  = {heals:"healthy", noheal:"gone", mixed:"drift", app:"config"};
+var TAG = {heals:"heals", noheal:"won't heal", mixed:"mixed", app:"config"};
+var BEHAVIOR = {heals:"heals", noheal:"won't heal", mixed:"mixed legs", app:"app & config"};
+
+/* small per-card signature trace */
+function miniWave(kind){
+  var cy=8, W=56, d="";
+  for(var x=0;x<=W;x+=4){
+    var y=cy;
+    if(kind==="healthy") y=cy+4.5*Math.sin(x/9);
+    else if(kind==="drift"){ y=cy+1.8*Math.sin(x/7); if(Math.abs(x-28)<4) y=cy-6.5; }
+    else if(kind==="config") y=cy+1.4*Math.sin(x/10);
+    else y=cy; // gone → flat
+    d += (x===0?"M":"L")+x+" "+y.toFixed(1)+" ";
+  }
+  return '<svg class="scn__wave" viewBox="0 0 56 16" aria-hidden="true"><path d="'+d+'"></path></svg>';
+}
+
 /* ----------------------------------------------------------
    2. Render scenario cards
 ---------------------------------------------------------- */
 (function(){
-  var st = {heals:"healthy", noheal:"gone", mixed:"drift", app:"app"};
-  var tag = {heals:"heals", noheal:"won't heal", mixed:"mixed", app:"config"};
-  // map our 4 outcome buckets onto the tri-state colour vars; "app" gets the signal accent
   var grid = document.getElementById("scnGrid"), html = "";
   SCENARIOS.forEach(function(s){
-    var stateAttr = (s.o==="app") ? "" : st[s.o];
-    var styleVar  = (s.o==="app") ? 'style="--state:var(--signal);--state-dim:var(--signal-dim)"' : "";
+    var ds = ST[s.o];
     var params = s.params.map(function(p){return "<code>"+p+"</code>"}).join("");
-    html += '<a class="scn" href="'+s.file+'" data-state="'+stateAttr+'" '+styleVar+'>'
-      + '<div class="scn__top"><span class="scn__file">'+s.file+'</span><span class="scn__tag">'+tag[s.o]+'</span></div>'
+    html += '<a class="scn" href="'+s.file+'" data-state="'+ds+'">'
+      + '<div class="scn__top"><span class="scn__file">'+s.file+'</span>'
+        + '<span class="scn__meta">'+miniWave(ds)+'<span class="scn__tag">'+TAG[s.o]+'</span></span></div>'
       + '<div class="scn__title">'+s.title+'</div>'
       + '<p class="scn__desc">'+s.desc+'</p>'
-      + (params?'<div class="scn__params">'+params+'</div>':'')
-      + '<div class="scn__go">open target →</div>'
+      + '<div class="scn__params">'+params+'</div>'
+      + '<div class="scn__go">open target <span class="arr">→</span></div>'
       + '</a>';
   });
   grid.innerHTML = html;
@@ -615,23 +514,21 @@ var CASES = [
 
 /* ----------------------------------------------------------
    3. Render + filter case matrix
+   (CASES is a static in-source catalog — no external/user input)
 ---------------------------------------------------------- */
 (function(){
   var body = document.getElementById("caseBody");
   var LOCAL = /^(checkout|validation|frames|visual|timing|flow|data|email|cookie|download)\.html(\?[^\s)]*)?|api\/todo\.json/g;
-  function linkify(txt){
-    return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; });
-  }
+  function linkify(txt){ return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; }); }
   var rows = CASES.map(function(c){
     return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'
-      + '<td><span class="c-case"><span class="pip '+c[1]+'"></span>'+c[0]+'</span></td>'
+      + '<td><span class="c-case"><span class="sr-only">'+BEHAVIOR[c[1]]+': </span><span class="pip '+c[1]+'"></span>'+c[0]+'</span></td>'
       + '<td class="c-page">'+linkify(c[2])+'</td>'
       + '<td class="c-how">'+c[3]+'</td>'
       + '</tr>';
   }).join("");
   body.innerHTML = rows + '<tr id="noRow" style="display:none"><td colspan="3" class="noresults">No cases match.</td></tr>';
 
-  // counts
   var counts = {all:CASES.length, heals:0, noheal:0, mixed:0, app:0};
   CASES.forEach(function(c){counts[c[1]]++});
   Object.keys(counts).forEach(function(k){var el=document.getElementById("n-"+k); if(el) el.textContent=counts[k];});
@@ -641,8 +538,7 @@ var CASES = [
   var activeFilter = "all";
 
   function apply(){
-    var q = search.value.trim().toLowerCase();
-    var shown = 0;
+    var q = search.value.trim().toLowerCase(), shown = 0;
     Array.prototype.slice.call(body.querySelectorAll("tr[data-o]")).forEach(function(tr){
       var okF = activeFilter==="all" || tr.getAttribute("data-o")===activeFilter;
       var okQ = !q || tr.getAttribute("data-text").indexOf(q) > -1;
@@ -653,7 +549,6 @@ var CASES = [
     document.getElementById("noRow").style.display = shown ? "none" : "";
     document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S34" : shown+" of "+CASES.length;
   }
-
   chips.forEach(function(ch){
     ch.addEventListener("click", function(){
       activeFilter = ch.getAttribute("data-f");
@@ -677,20 +572,35 @@ function buildWave(kind){
       var c = Math.round(x/400)*400, dd = x - c;        // a sharp spike every 400px = the locator break
       y -= 80*Math.exp(-(dd*dd)/(2*15*15));
     } else {                                            // gone → flatline
-      y = cy + (Math.abs(x-60)<3 ? -3 : 0);             // one faint last blip, then nothing
+      y = cy + (Math.abs(x-60)<3 ? -3 : 0);
     }
     d += (x===0?"M":"L") + x + " " + y.toFixed(1) + " ";
   }
   return d;
 }
 
+/* trace cross-fade on a real state change (no-op under reduced motion via the global CSS reset) */
+var curD = null;
+function setWave(kind){
+  var d = buildWave(kind);
+  var a = document.getElementById("wavePath"), b = document.getElementById("wavePathOut");
+  if(curD === null){ a.setAttribute("d", d); a.style.opacity = 1; curD = d; return; }
+  b.setAttribute("d", curD); b.style.transition = "none"; b.style.opacity = 1;
+  a.setAttribute("d", d);    a.style.transition = "none"; a.style.opacity = 0;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    a.style.transition = "opacity .6s var(--ease)"; b.style.transition = "opacity .6s var(--ease)";
+    a.style.opacity = 1; b.style.opacity = 0;
+  });});
+  curD = d;
+}
+
 /* ----------------------------------------------------------
-   5. Resolve live state (reuses flag.js lcaState) + render
+   5. Resolve live state (single source of truth: flag.js lcaResolve) + render
 ---------------------------------------------------------- */
 var COPY = {
-  healthy:{word:"HEALTHY",   meaning:"Locators intact. <span>The saved test re-runs clean — no heal needed.</span>", wave:"healthy"},
-  drift:  {word:"DRIFTED",   meaning:"Captured locator broken. <span>A heal must fire to recover the step.</span>",   wave:"drift"},
-  gone:   {word:"UNHEALABLE",meaning:"Target removed. <span>Heals fail until the budget is exhausted.</span>",        wave:"gone"}
+  healthy:{word:"HEALTHY",   meaning:"Locators intact. <span>The saved test re-runs clean — no heal needed.</span>", plain:"locators intact, the saved test re-runs clean", wave:"healthy"},
+  drift:  {word:"DRIFTED",   meaning:"Captured locator broken. <span>A heal must fire to recover the step.</span>",  plain:"captured locator broken, a heal must fire",       wave:"drift"},
+  gone:   {word:"UNHEALABLE",meaning:"Target removed. <span>Heals fail until the budget is exhausted.</span>",       plain:"target removed, heals fail until budget is exhausted", wave:"gone"}
 };
 var SRC = {
   url_drift:'overridden by URL <b>?v=2</b>',
@@ -699,46 +609,40 @@ var SRC = {
   flag:     'resolved from <b>flag.json</b> (shared)'
 };
 
-function detectSource(){
-  var p = new URLSearchParams(location.search);
-  if(p.has("gone")) return "url_gone";
-  if(p.get("v")==="2" || p.has("break")) return "url_drift";
-  if(localStorage.getItem("lcaBreak")==="1") return "local";
-  return "flag";
-}
-
-var lastState = null;
+var lastState = null, resolving = false;
 async function resolveAndRender(){
-  var raw;
-  try { raw = await lcaState(); } catch(e){ raw = false; }
-  var state = raw==="gone" ? "gone" : (raw===true || raw==="v2") ? "drift" : "healthy";
-  var src = detectSource();
-  // localStorage can only force "drift"; if state isn't drift, the source is really the flag/url
-  if(src==="local" && state!=="drift") src = "flag";
+  if(resolving) return; resolving = true;
+  try{
+    var r; try{ r = await lcaResolve(); }catch(e){ r = {state:"healthy", source:"flag"}; }
+    var state = r.state, src = r.source;
 
-  // paint everything that is state-driven
-  ["screen","plate","resoCard","flagchip"].forEach(function(id){
-    document.getElementById(id).setAttribute("data-state", state);
-  });
-  document.getElementById("stateWord").textContent = COPY[state].word;
-  document.getElementById("stateMeaning").innerHTML = COPY[state].meaning;
-  document.getElementById("stateSrc").innerHTML = SRC[src];
-  document.getElementById("chipState").textContent = COPY[state].word.toLowerCase();
+    ["screen","plate","resoCard","flagchip"].forEach(function(id){
+      document.getElementById(id).setAttribute("data-state", state);
+    });
+    document.getElementById("stateMeaning").innerHTML = COPY[state].meaning;
+    document.getElementById("stateSrc").innerHTML = SRC[src];
+    document.getElementById("chipState").textContent = COPY[state].word.toLowerCase();
 
-  // highlight the winning node in the resolution diagram
-  var winner = (src==="url_drift"||src==="url_gone") ? "reso-url" : src==="local" ? "reso-local" : "reso-flag";
-  ["reso-url","reso-local","reso-flag"].forEach(function(id){
-    document.getElementById(id).classList.toggle("is-active", id===winner);
-  });
+    var winner = (src==="url_drift"||src==="url_gone") ? "reso-url" : src==="local" ? "reso-local" : "reso-flag";
+    ["reso-url","reso-local","reso-flag"].forEach(function(id){
+      document.getElementById(id).classList.toggle("is-active", id===winner);
+    });
 
-  // override note: a URL param sits above the localStorage switch
-  document.getElementById("ovNote").classList.toggle("show", src==="url_drift"||src==="url_gone");
+    // a URL param sits above the localStorage switch: make that programmatic, not just visual
+    var urlOverride = (src==="url_drift" || src==="url_gone");
+    var ov = document.getElementById("ov");
+    ov.disabled = urlOverride;
+    document.getElementById("ovNote").classList.toggle("show", urlOverride);
 
-  // only rebuild the wave when the state actually changes (keeps the scroll smooth)
-  if(state !== lastState){
-    document.getElementById("wavePath").setAttribute("d", buildWave(COPY[state].wave));
-    lastState = state;
-  }
+    if(state !== lastState){
+      var word = document.getElementById("stateWord");
+      word.textContent = COPY[state].word;
+      word.classList.remove("enter"); void word.offsetWidth; word.classList.add("enter");
+      setWave(COPY[state].wave);
+      document.getElementById("liveState").textContent = "Heal signal: " + COPY[state].word + " — " + COPY[state].plain + ".";
+      lastState = state;
+    }
+  } finally { resolving = false; }
 }
 
 // override switch ↔ localStorage.lcaBreak
@@ -746,15 +650,26 @@ async function resolveAndRender(){
   var ov = document.getElementById("ov");
   ov.checked = localStorage.getItem("lcaBreak")==="1";
   ov.addEventListener("change", function(){
-    if(ov.checked) localStorage.setItem("lcaBreak","1");
-    else localStorage.removeItem("lcaBreak");
+    if(ov.checked) localStorage.setItem("lcaBreak","1"); else localStorage.removeItem("lcaBreak");
     resolveAndRender();
   });
 })();
 
+// reveal below-the-fold sections as they scroll in (hero + cluster are already .in)
+(function(){
+  var items = Array.prototype.slice.call(document.querySelectorAll(".section.reveal"));
+  if(!("IntersectionObserver" in window)){ items.forEach(function(el){el.classList.add("in");}); return; }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
+  }, {rootMargin:"0px 0px -10% 0px"});
+  items.forEach(function(el){ io.observe(el); });
+})();
+
+setWave("healthy");           // paint a trace synchronously so boot reveals signal, not an empty grid
 resolveAndRender();
-// keep the monitor live — the shared flag lands ~30–60s after a toggle
-setInterval(resolveAndRender, 15000);
+// keep the monitor live; shared flag lands ~30–60s after a toggle — poll only while visible
+setInterval(function(){ if(!document.hidden) resolveAndRender(); }, 20000);
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) resolveAndRender(); });
 </script>
 </body>
 </html>
