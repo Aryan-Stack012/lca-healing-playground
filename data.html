@@ -15,13 +15,31 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Producer / consumer</span>
-      <h1>Shared data</h1>
-      <p class="page__note">Producer shows a token to extract; the shared flag drifts its id (same URL). Consumer: open <code>?use=HEAL-7421</code>.</p>
+      <h1>Token exchange</h1>
+      <p class="page__note">A producer step extracts a token; the shared flag drifts the element id it is captured from (same URL). A downstream consumer replays the captured value — open <code>?use=HEAL-7421</code>.</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <div id="prod"></div>
-      <div id="cons"></div>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Auth service response</h2><span class="badge badge--ok">200 OK</span></div>
+      <div class="surface__body stack">
+        <div class="rows">
+          <div class="row"><span class="row__k">POST</span><span class="row__v" style="text-transform:none">/v1/sessions</span></div>
+          <div class="row"><span class="row__k">Latency</span><span class="row__v">128 ms</span></div>
+        </div>
+        <div>
+          <div class="meta" style="margin-bottom:6px">access_token</div>
+          <div id="prod" class="code"></div>
+        </div>
+        <span class="meta">The producer test extracts this token; the break drifts its element id so the capture must re-derive.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Downstream consumer</h2><span class="badge badge--info">replay</span></div>
+      <div class="surface__body">
+        <p class="meta" style="margin:0 0 var(--s3)">Open <code class="k">?use=HEAL-7421</code> to validate the captured token against this step.</p>
+        <div id="cons"></div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

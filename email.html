@@ -15,13 +15,21 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Verification inbox</span>
-      <h1>Simulated verification email</h1>
-      <p class="page__note">The shared flag drifts the verify link / OTP ids (same URL). Asserting the wrong OTP is a mismatch that won't heal. (Real OTP: temp-mail.org.)</p>
+      <h1>Account verification</h1>
+      <p class="page__note">The shared flag drifts the verify-link and OTP element ids (same URL) so a heal must re-derive them. Asserting the wrong OTP is a mismatch that won't heal. (Real OTP: temp-mail.org.)</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <div id="mail"></div>
-      <div id="result"></div>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Inbox</h2><span class="badge badge--info">1 unread</span></div>
+      <div class="surface__body">
+        <div class="mailhead">
+          <span class="avatar">B</span>
+          <span style="flex:1"><div class="mailhead__from">BrowserStack Account</div><div class="mailhead__addr">no-reply@browserstack-demo.com</div></span>
+          <span class="meta">just now</span>
+        </div>
+        <div class="mailbody" id="mail"></div>
+        <div id="result" aria-live="polite" style="margin-top:var(--s4)"></div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

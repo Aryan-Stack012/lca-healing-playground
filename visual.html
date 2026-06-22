@@ -15,12 +15,27 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Never heals · visual</span>
-      <h1>Visual diff</h1>
-      <p class="page__note">The box colour and number randomise on each load, so a visual baseline never matches — the mismatch is a real failure, never healed.</p>
+      <h1>Visual snapshot</h1>
+      <p class="page__note">Colour and value randomise on every load, so a stored baseline never matches. A visual mismatch is a real failure — never healed, and baselines stay per-browser.</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <div id="box"></div>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Snapshot · home hero</h2><span class="badge badge--err">non-deterministic</span></div>
+      <div class="surface__body">
+        <div class="tile">
+          <div id="box"></div>
+          <div>
+            <div class="item__name">Render delta</div>
+            <p class="meta" style="margin:6px 0 0">Each load repaints this tile with a random colour and number, guaranteeing a baseline diff on every run.</p>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Baseline</span><span class="row__v">build LCA-4795</span></div>
+          <div class="row"><span class="row__k">Comparison</span><span class="row__v">this load</span></div>
+          <div class="row"><span class="row__k">Threshold</span><span class="row__v">0.1%</span></div>
+        </div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

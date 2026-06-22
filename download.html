@@ -15,12 +15,26 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Never heals · download</span>
-      <h1>File download</h1>
-      <p class="page__note">Downloads <code>report.txt</code>. Assert the filename "report.txt" (passes) vs a wrong name (validation failure → not healed).</p>
+      <h1>Run artifacts</h1>
+      <p class="page__note">Download the report and assert the saved filename is <code>report.txt</code> — the correct name passes; a wrong name is a validation failure that won't heal.</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <p><a id="dl" class="dl-btn" href="files/report.txt" download="report.txt">Download report</a></p>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Test run report</h2><span class="badge badge--ok">ready</span></div>
+      <div class="surface__body stack">
+        <div class="filecard">
+          <span class="fileicon" aria-hidden="true"></span>
+          <span style="flex:1">
+            <div class="filecard__name">report.txt</div>
+            <div class="meta">Plain text · build LCA-4821 · 28 bytes</div>
+          </span>
+          <a id="dl" class="dl-btn" href="files/report.txt" download="report.txt">Download report</a>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="row__k">Content type</span><span class="row__v" style="text-transform:none">text/plain</span></div>
+          <div class="row"><span class="row__k">Expected name</span><span class="row__v">report.txt</span></div>
+        </div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

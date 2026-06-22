@@ -229,10 +229,114 @@ pre{
 .page-foot p{margin:0; color:var(--faint); font-size:var(--fs-100)}
 .page-foot a{font-family:var(--font-mono); font-size:var(--fs-75)}
 
+/* ============================================================
+   Realistic product surfaces — shared component vocabulary so
+   every target page reads as a real app screen, not a test box.
+   ============================================================ */
+.surface{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); box-shadow:var(--e1); overflow:hidden}
+.surface + .surface{margin-top:var(--s4)}
+.surface__head{display:flex; align-items:center; justify-content:space-between; gap:var(--s3); padding:var(--s4) var(--s5); border-bottom:1px solid var(--line-soft); background:linear-gradient(180deg, rgba(255,255,255,.02), transparent)}
+.surface__title{font-family:var(--font-display); font-weight:600; font-size:var(--fs-200); margin:0}
+.surface__meta{font-family:var(--font-mono); font-size:var(--fs-50); color:var(--faint); letter-spacing:.04em}
+.surface__body{padding:var(--s5)}
+.surface__foot{padding:var(--s4) var(--s5); border-top:1px solid var(--line-soft); background:var(--ink-2); display:flex; flex-direction:column; gap:var(--s3)}
+
+/* app layout: content + summary aside */
+.cols{display:grid; grid-template-columns:1fr; gap:var(--s4); align-items:start}
+@media (min-width:760px){ .cols--aside{grid-template-columns:1fr minmax(280px,340px)} }
+
+/* line items */
+.items{display:flex; flex-direction:column}
+.item{display:grid; grid-template-columns:auto 1fr auto; gap:var(--s3); align-items:center; padding:var(--s3) 0; border-bottom:1px solid var(--line-soft)}
+.item:last-child{border-bottom:0}
+.thumb{width:46px; height:46px; border-radius:var(--r-sm); background:linear-gradient(135deg, var(--panel-2), var(--ink-2)); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:var(--fs-100); color:var(--muted)}
+.item__name{font-weight:500; font-size:var(--fs-200); color:var(--text)}
+.item__meta{font-size:var(--fs-75); color:var(--faint)}
+.item__price{font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--text)}
+
+/* key/value + totals rows */
+.rows{display:flex; flex-direction:column; gap:var(--s2)}
+.row{display:flex; align-items:center; justify-content:space-between; gap:var(--s3); font-size:var(--fs-100)}
+.row__k{color:var(--muted)}
+.row__v{font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--text)}
+.row--total{padding-top:var(--s3); margin-top:var(--s1); border-top:1px solid var(--line); font-size:var(--fs-300)}
+.row--total .row__k{color:var(--text); font-weight:600}
+.row--total .row__v{font-weight:700}
+.row--strike .row__v{color:var(--healthy)}
+
+/* status badges */
+.badge{display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:var(--r-pill); border:1px solid var(--line); color:var(--muted); background:var(--ink-2)}
+.badge::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none}
+.badge--ok{color:var(--healthy); border-color:color-mix(in srgb,var(--healthy) 40%,transparent); background:var(--healthy-dim)}
+.badge--err{color:var(--gone); border-color:color-mix(in srgb,var(--gone) 40%,transparent); background:var(--gone-dim)}
+.badge--warn{color:var(--drift); border-color:color-mix(in srgb,var(--drift) 40%,transparent); background:var(--drift-dim)}
+.badge--info{color:var(--signal); border-color:color-mix(in srgb,var(--signal) 40%,transparent); background:var(--signal-dim)}
+
+/* helpers */
+.meta{font-size:var(--fs-75); color:var(--faint)}
+.stack{display:flex; flex-direction:column; gap:var(--s4)}
+.inline{display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap}
+.divider{height:1px; background:var(--line-soft); margin:var(--s4) 0; border:0}
+
+/* form fields */
+.field{display:flex; flex-direction:column; gap:6px}
+.field > label{font-size:var(--fs-75); color:var(--muted)}
+.field input, .field select{font-family:var(--font-body); font-size:var(--fs-200); color:var(--text); background:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:10px 12px; width:100%}
+.searchbar{display:flex; gap:var(--s2)}
+.searchbar input{flex:1; min-width:0; font-family:var(--font-body); font-size:var(--fs-200); color:var(--text); background:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:10px 12px}
+.field input:disabled, .searchbar input:disabled{opacity:1; color:var(--muted); -webkit-text-fill-color:var(--muted)}
+
+/* stepper */
+.stepper{display:flex; align-items:center; gap:var(--s2); margin-bottom:var(--s5); flex-wrap:wrap}
+.step{display:flex; align-items:center; gap:var(--s2); font-size:var(--fs-75); color:var(--faint)}
+.step__n{width:22px; height:22px; border-radius:50%; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:var(--fs-50); color:var(--muted)}
+.step.is-done .step__n{background:var(--healthy); border-color:var(--healthy); color:#04231a}
+.step.is-active .step__n{border-color:var(--signal); color:var(--signal)}
+.step.is-active{color:var(--text)}
+.step__sep{width:24px; height:1px; background:var(--line)}
+
+/* code / OTP */
+.code{font-family:var(--font-mono); font-size:var(--fs-100); background:var(--ink-2); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:var(--s3) var(--s4); color:var(--text); word-break:break-all}
+.otp{display:inline-flex; gap:8px; font-family:var(--font-mono); font-weight:700; font-size:var(--fs-400); letter-spacing:.24em; color:var(--text)}
+
+/* skeleton + spinner (static under reduced-motion via the global reset) */
+.skeleton{height:12px; border-radius:6px; background:linear-gradient(90deg,var(--line-soft),var(--panel-2),var(--line-soft)); background-size:200% 100%; animation:shimmer 1.4s linear infinite}
+.skeleton + .skeleton{margin-top:var(--s3)}
+@keyframes shimmer{to{background-position:-200% 0}}
+.spinner{width:18px; height:18px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--signal); animation:spin .7s linear infinite; flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* email client */
+.mailhead{display:flex; align-items:center; gap:var(--s3); padding-bottom:var(--s4); border-bottom:1px solid var(--line-soft); margin-bottom:var(--s4)}
+.avatar{width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--signal),var(--healthy)); color:var(--ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-family:var(--font-display); flex:none}
+.mailhead__from{font-weight:600; color:var(--text); font-size:var(--fs-200)}
+.mailhead__addr{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--faint)}
+.mailbody p{margin:0 0 var(--s3); color:var(--muted); font-size:var(--fs-200)}
+
+/* metric tile (visual diff) */
+.tile{display:grid; grid-template-columns:auto 1fr; gap:var(--s4); align-items:center}
+
+/* file / report card */
+.filecard{display:flex; align-items:center; gap:var(--s4); padding:var(--s4); border:1px solid var(--line); border-radius:var(--r-sm); background:var(--ink-2)}
+.fileicon{width:42px; height:52px; border-radius:6px; border:1px solid var(--line-strong); background:linear-gradient(160deg,var(--panel-2),var(--ink)); position:relative; flex:none}
+.fileicon::after{content:"TXT"; position:absolute; left:0; right:0; bottom:6px; text-align:center; font-family:var(--font-mono); font-size:8px; letter-spacing:.1em; color:var(--signal)}
+.filecard__name{font-family:var(--font-mono); font-size:var(--fs-200); color:var(--text)}
+
+/* validation: promo note + fulfillment status (JS-filled mount points) */
+#promo{margin:var(--s3) 0 0; font-family:var(--font-mono); font-size:var(--fs-75); color:var(--healthy)}
+#badgezone p{margin:0; font-family:var(--font-mono); font-size:var(--fs-100); color:var(--muted)}
+
+/* email: render the JS-filled verify link as a CTA and the OTP as a code (mount point #mail) */
+#mail p{margin:var(--s3) 0}
+#mail a{display:inline-flex; align-items:center; gap:8px; background:var(--signal); color:var(--on-signal); font-weight:600; border-radius:var(--r-sm); padding:10px 16px; margin:var(--s2) 0}
+#mail a:hover{background:var(--signal-hi); text-decoration:none}
+#mail span{display:inline-block; font-family:var(--font-mono); font-weight:700; letter-spacing:.2em; font-size:var(--fs-300); color:var(--text)}
+
 /* ---------------- responsive ---------------- */
 @media (max-width:560px){
   .stage{padding:var(--s5)}
   .topbar__in{gap:var(--s2)}
+  .surface__body{padding:var(--s4)}
 }
 
 /* ---------------- reduced motion (complete: kills transitions + animations) ---------------- */

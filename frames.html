@@ -15,16 +15,30 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Cross-boundary heal</span>
-      <h1>iFrame + Shadow DOM</h1>
-      <p class="page__note">Break via the shared flag (same URL). Overrides: <code>?v=2</code> / <code>localStorage.lcaBreak=1</code>. The heal must re-find the same Checkout button across both boundaries.</p>
+      <h1>Embedded payment surfaces</h1>
+      <p class="page__note">The same Checkout action lives behind two encapsulation boundaries. The shared flag drifts both (same URL); overrides: <code>?v=2</code> / <code>localStorage.lcaBreak=1</code>. The heal must re-find the action across each boundary.</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <h2 class="sub">iFrame</h2>
-      <iframe id="frame" title="f" class="frame"></iframe>
-      <h2 class="sub">Shadow DOM</h2>
-      <div id="host"></div>
-      <div id="sresult"></div>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Hosted card field</h2><span class="badge badge--info">cross-origin iframe</span></div>
+      <div class="surface__body stack">
+        <div class="field"><label for="cardno">Card number</label><input id="cardno" inputmode="numeric" value="4242 4242 4242 4242" disabled></div>
+        <div class="inline">
+          <div class="field" style="flex:1"><label for="exp">Expiry</label><input id="exp" value="04 / 28" disabled></div>
+          <div class="field" style="flex:1"><label for="cvc">CVC</label><input id="cvc" value="•••" disabled></div>
+        </div>
+        <iframe id="frame" title="Hosted payment action" class="frame"></iframe>
+        <span class="meta">The pay action is served from a separate document — the heal reaches into the frame.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Express checkout</h2><span class="badge badge--info">web component · shadow DOM</span></div>
+      <div class="surface__body stack">
+        <div id="host"></div>
+        <div id="sresult" aria-live="polite"></div>
+        <span class="meta">The same action, encapsulated in a shadow root — the heal pierces the shadow boundary.</span>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

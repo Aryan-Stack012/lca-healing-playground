@@ -16,13 +16,47 @@
     <header class="page__head">
       <span class="eyebrow">Primary heal target</span>
       <h1>Checkout</h1>
-      <p class="page__note">Break driven by the shared flag (same URL). Toggle via the <b>toggle-heal</b> Action or <code>./toggle.sh</code>: <code>on</code> = relocated + decoy (healable), <code>off</code> = healthy, <code>gone</code> = button removed (unhealable).</p>
+      <p class="page__note">Break driven by the shared flag (same URL). Toggle via the <b>toggle-heal</b> Action or <code>./toggle.sh</code>: <code>on</code> relocates the action into an overflow menu beside a decoy (healable), <code>off</code> is healthy, <code>gone</code> removes the action (unhealable).</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <div id="zone">loading…</div>
-      <div id="result"></div>
-    </section>
+
+    <div class="cols cols--aside">
+      <section class="surface">
+        <div class="surface__head">
+          <h2 class="surface__title">Review your order</h2>
+          <span class="badge badge--info">3 items</span>
+        </div>
+        <div class="surface__body">
+          <div class="items">
+            <div class="item"><span class="thumb">AH</span><span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></span><span class="item__price">$79.00</span></div>
+            <div class="item"><span class="thumb">UC</span><span><div class="item__name">USB-C Braided Cable</div><div class="item__meta">2 m · Qty 1</div></span><span class="item__price">$12.00</span></div>
+            <div class="item"><span class="thumb">CP</span><span><div class="item__name">Coverage Plan</div><div class="item__meta">1 year · Qty 1</div></span><span class="item__price">$9.00</span></div>
+          </div>
+          <hr class="divider">
+          <div class="rows">
+            <div class="row"><span class="row__k">Ship to</span><span class="row__v" style="text-transform:none">Ada Lovelace · London</span></div>
+            <div class="row"><span class="row__k">Payment</span><span class="row__v">Visa •••• 4242</span></div>
+            <div class="row"><span class="row__k">Delivery</span><span class="row__v" style="text-transform:none">Free · 2–4 days</span></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="surface">
+        <div class="surface__head"><h2 class="surface__title">Summary</h2><span class="badge badge--ok">Secure</span></div>
+        <div class="surface__body">
+          <div class="rows">
+            <div class="row"><span class="row__k">Subtotal</span><span class="row__v">$100.00</span></div>
+            <div class="row"><span class="row__k">Shipping</span><span class="row__v">$0.00</span></div>
+            <div class="row"><span class="row__k">Tax</span><span class="row__v">$0.00</span></div>
+            <div class="row row--total"><span class="row__k">Total</span><span class="row__v">$100.00</span></div>
+          </div>
+        </div>
+        <div class="surface__foot">
+          <span class="meta">Placing the order confirms the demo terms.</span>
+          <div id="zone">loading…</div>
+          <div id="result"></div>
+        </div>
+      </aside>
+    </div>
   </main>
   <script src="flag.js"></script>
   <script src="assets/page.js"></script>

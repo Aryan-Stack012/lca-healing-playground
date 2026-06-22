@@ -15,15 +15,34 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Mid-flow drift</span>
-      <h1>Multi-step flow</h1>
-      <p class="page__note">Search → Add to cart → Checkout. The shared flag drifts the middle (Add to cart) step (same URL), forcing a replay to the first failing step.</p>
+      <h1>Guided purchase</h1>
+      <p class="page__note">Search → Add to cart → Checkout. The shared flag drifts the middle step (same URL), forcing the run to replay to the first failing step and re-record everything onward.</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <div id="s1"><button id="search">Search</button></div>
-      <div id="s2"></div>
-      <div id="s3"></div>
-      <div id="result"></div>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Express purchase</h2><span class="badge badge--info">3 steps</span></div>
+      <div class="surface__body">
+        <div class="stepper" aria-hidden="true">
+          <span class="step is-active"><span class="step__n">1</span> Search</span><span class="step__sep"></span>
+          <span class="step"><span class="step__n">2</span> Add to cart</span><span class="step__sep"></span>
+          <span class="step"><span class="step__n">3</span> Checkout</span>
+        </div>
+
+        <div class="item" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s3);margin-bottom:var(--s4)">
+          <span class="thumb">AH</span>
+          <span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">In stock · ships free</div></span>
+          <span class="item__price">$79.00</span>
+        </div>
+
+        <div class="searchbar">
+          <input value="wireless headphones" disabled aria-label="Search products">
+          <div id="s1"><button id="search" class="btn-primary">Search</button></div>
+        </div>
+
+        <div id="s2" style="margin-top:var(--s4)"></div>
+        <div id="s3" style="margin-top:var(--s3)"></div>
+        <div id="result" style="margin-top:var(--s4)"></div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>

@@ -15,12 +15,20 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Config carry-over</span>
-      <h1>Browser config check</h1>
-      <p class="page__note">Shows the cookies / localStorage the page sees. Set a cookie or localStorage key in your LCA run config; the heal run should still show it. (Basic auth: use the-internet/basic_auth, admin/admin.)</p>
+      <h1>Session &amp; storage inspector</h1>
+      <p class="page__note">Shows the cookies and localStorage this origin can see. Set them in your run config; a heal run should still surface them here. (Basic auth: use the-internet/basic_auth, admin/admin.)</p>
     </header>
-    <section class="stage">
-      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
-      <pre id="out"></pre>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">What this origin sees</h2><span class="badge badge--info">read-only</span></div>
+      <div class="surface__body stack">
+        <pre id="out"></pre>
+        <hr class="divider">
+        <div>
+          <div class="meta" style="margin-bottom:6px">Seed in your run config</div>
+          <div class="code">localStorage.setItem('demoConfig', 'region=us-east')<br>document.cookie = 'session=abc; path=/'</div>
+        </div>
+      </div>
     </section>
   </main>
   <script src="flag.js"></script>
