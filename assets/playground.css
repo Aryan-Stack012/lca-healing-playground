@@ -332,6 +332,12 @@ pre{
 #mail a:hover{background:var(--signal-hi); text-decoration:none}
 #mail span{display:inline-block; font-family:var(--font-mono); font-weight:700; letter-spacing:.2em; font-size:var(--fs-300); color:var(--text)}
 
+/* result / status output reads as a chip once populated */
+#result:not(:empty), #sresult:not(:empty){display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-sm); background:var(--ink-2); border:1px solid var(--line-soft); font-family:var(--font-mono); font-weight:600; font-size:var(--fs-100)}
+
+/* guided-flow step buttons + inline notes */
+.flowline{font-size:var(--fs-75); color:var(--faint); margin:0 0 var(--s2)}
+
 /* ---------------- responsive ---------------- */
 @media (max-width:560px){
   .stage{padding:var(--s5)}

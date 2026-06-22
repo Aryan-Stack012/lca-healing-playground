@@ -15,20 +15,23 @@
   <main id="main" tabindex="-1" class="wrap narrow page">
     <header class="page__head">
       <span class="eyebrow">Intelligent wait</span>
-      <h1>Cloud session</h1>
-      <p class="page__note">The action arrives after <code>?delay=ms</code> (default 5000) — this exercises intelligent wait, not a heal. A very large delay is a genuine timeout.</p>
+      <h1>Cart</h1>
+      <p class="page__note">The Checkout action loads after <code>?delay=ms</code> (default 5000) — this exercises intelligent wait, not a heal. A very large delay is a genuine timeout.</p>
     </header>
 
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Provisioning session</h2><span class="badge badge--warn">starting</span></div>
+      <div class="surface__head"><h2 class="surface__title">Your cart</h2><span class="badge badge--warn" id="loadBadge">loading</span></div>
       <div class="surface__body stack">
+        <div class="item">
+          <span class="thumb">AH</span>
+          <span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></span>
+          <span class="item__price">$79.00</span>
+        </div>
         <div class="rows">
-          <div class="row"><span class="row__k">Browser</span><span class="row__v" style="text-transform:none">Chrome 124 · Windows 11</span></div>
-          <div class="row"><span class="row__k">Region</span><span class="row__v" style="text-transform:none">us-east-1</span></div>
-          <div class="row"><span class="row__k">Session</span><span class="row__v">lca-7f3a9c</span></div>
+          <div class="row row--total"><span class="row__k">Total</span><span class="row__v">$79.00</span></div>
         </div>
         <hr class="divider">
-        <div id="zone"><span class="spinner"></span> <span class="meta">Allocating a cloud session…</span></div>
+        <div id="zone"><span class="spinner"></span> <span class="meta">Loading checkout…</span></div>
         <div id="result" aria-live="polite"></div>
       </div>
     </section>
@@ -37,7 +40,11 @@
   <script src="assets/page.js"></script>
   <script>
   var d=parseInt(new URLSearchParams(location.search).get('delay')||'5000',10);
-  setTimeout(function(){document.getElementById('zone').innerHTML='<button id="checkout" aria-label="Checkout">Checkout</button>';document.querySelector('#zone button').onclick=function(){document.getElementById('result').textContent='clicked';};},d);
+  setTimeout(function(){
+    document.getElementById('zone').innerHTML='<button id="checkout" class="btn-primary" aria-label="Checkout">Checkout</button>';
+    document.querySelector('#zone button').onclick=function(){document.getElementById('result').textContent='clicked';};
+    var b=document.getElementById('loadBadge'); if(b){b.textContent='ready'; b.className='badge badge--ok';}
+  },d);
   </script>
 </body>
 </html>
