@@ -1,9 +1,760 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LCA Self-Healing Playground</title>
-<style>body{font-family:system-ui,Arial;max-width:920px;margin:32px auto;padding:0 16px;color:#222}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:14px}td,th{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f6f6f6}code{background:#f3f3f3;padding:1px 5px;border-radius:4px}a{color:#0b66ff}</style></head>
-<body><h1>LCA Self-Healing Playground</h1>
-<p>Controllable pages for testing adaptive self-healing of agentic tests. <b>Pattern:</b> record on the default URL, then re-run against a variant (usually <code>?v=2</code>) that breaks the captured locator so a heal must fire.</p>
-<p><b>Scenarios:</b> <a href="checkout.html">checkout.html</a> &nbsp; <a href="frames.html">frames.html</a> &nbsp; <a href="validation.html">validation.html</a> &nbsp; <a href="visual.html">visual.html</a> &nbsp; <a href="timing.html">timing.html</a> &nbsp; <a href="flow.html">flow.html</a> &nbsp; <a href="data.html">data.html</a> &nbsp; <a href="email.html">email.html</a> &nbsp; <a href="cookie.html">cookie.html</a> &nbsp; <a href="download.html">download.html</a> &nbsp; </p>
-<h2>All 34 test cases &rarr; page mapping</h2>
-<p style="color:#777;font-size:13px">App/suite/build/flag/RBAC/mobile/reporting cases use these pages as the test <i>target</i>; the heal-triggering condition is induced on the page, the rest is configured in LCA.</p>
-<table><tr><th>Case</th><th>Page</th><th>How to exercise it</th></tr><tr><td>S1</td><td><code>checkout.html</code></td><td>Record click Checkout on default; re-run ?v=2 -> locator heal recovers, passes</td></tr><tr><td>S2</td><td><code>validation.html + visual.html</code></td><td>Assert wrong #total / removed #promo (?remove=1) / visual mismatch -> NOT healed</td></tr><tr><td>S3</td><td><code>checkout.html</code></td><td>App: record a NON-agentic test; verify no adaptive heal; check run-only vs edit RBAC</td></tr><tr><td>S4</td><td><code>checkout.html</code></td><td>App: healing flag OFF (no heal) vs both flags ON (heals)</td></tr><tr><td>S5</td><td><code>checkout.html</code></td><td>App: edit a step -> new version -> restore</td></tr><tr><td>S6</td><td><code>checkout.html</code></td><td>Record Checkout; re-run ?v=2 (relocated, no visible text) -> adaptive re-derivation</td></tr><tr><td>S7</td><td><code>checkout.html?v=2</code></td><td>Decoy 'Continue' is present -> heal must hit the real Checkout, never the decoy</td></tr><tr><td>S8</td><td><code>checkout.html + validation.html + bad host</code></td><td>Fragility heals; validation mismatch & infra refused</td></tr><tr><td>S9</td><td><code>checkout.html?gone=1</code></td><td>Button removed (unhealable): heal fails 3x -> budget exhausted; then edit -> new version resets</td></tr><tr><td>S10</td><td><code>checkout.html</code></td><td>Suite: run across Chrome+Firefox+Edge -> heal on Chrome, reuse on failing browsers</td></tr><tr><td>S11</td><td><code>checkout.html + a non-AI test</code></td><td>Suite: auto-rerun ON (no adaptive heal) vs OFF (heal AI only)</td></tr><tr><td>S12</td><td><code>checkout.html</code></td><td>App UI: healed run -> 'AI healed' badge (only) + AI sparkle in build details</td></tr><tr><td>S13</td><td><code>frames.html</code></td><td>?v=2 drifts the iframe + shadow-DOM button -> adaptive re-finds across the boundary</td></tr><tr><td>S14</td><td><code>api/todo.json + httpbin.org/status/401,500</code></td><td>API failure (status / JSON mismatch) -> never healed</td></tr><tr><td>S15</td><td><code>download.html + visual.html</code></td><td>Wrong filename / visual mismatch -> not healed; visual baselines stay per-browser</td></tr><tr><td>S16</td><td><code>timing.html</code></td><td>?delay element for intelligent-wait; set fail-and-stop / fail-but-continue in app</td></tr><tr><td>S17</td><td><code>checkout.html</code></td><td>App: recorder edit (heal off) / restore AI version (on) / 'Save as steps' (never)</td></tr><tr><td>S18</td><td><code>checkout.html</code></td><td>App: view-test Run vs Build run -> no double-heal / conflicting versions</td></tr><tr><td>S19</td><td><code>checkout.html (scheduled) + the-internet/upload</code></td><td>Scheduled heal; 'Aborted' via OS file dialog doesn't burn budget; auto-rerun = no heal</td></tr><tr><td>S20</td><td><code>data.html</code></td><td>Extract #token (?v=2 drifts) -> build report keeps the heal + preserves {{token}}</td></tr><tr><td>S21</td><td><code>checkout.html (used as a module)</code></td><td>Module/shared step fails -> never healed; surrounding AI steps still heal</td></tr><tr><td>S22</td><td><code>checkout.html</code></td><td>?v=2 -> heal -> new 'Auto-healed by BrowserStack AI' version; ?gone=1 -> heal fails -> NO version</td></tr><tr><td>S23</td><td><code>checkout.html</code></td><td>Record NON-agentic; re-run ?v=2 -> tier-1 locator heal works; adaptive NOT invoked</td></tr><tr><td>S24</td><td><code>validation.html</code></td><td>?v=2 drifts #status-badge (element-not-found -> heals); ?wrong=1 (mismatch -> no heal)</td></tr><tr><td>S25</td><td><code>flow.html</code></td><td>?v=2 drifts the middle step -> replay to first failing step, re-record everything onward</td></tr><tr><td>S26</td><td><code>checkout.html</code></td><td>Capacity: many parallel runs; shared lcnc-ai-user account + 2x healing parallels</td></tr><tr><td>S27</td><td><code>checkout.html</code></td><td>Run on an emulated mobile browser -> heals like desktop Chrome</td></tr><tr><td>S28</td><td><code>checkout.html</code></td><td>Suite executed blockwise / sequential / parallel -> heals in each (order not preserved)</td></tr><tr><td>S29</td><td><code>data.html</code></td><td>Test A extracts #token, Test B ?use=...; fail A's capture (heal) vs B bad data (no heal)</td></tr><tr><td>S30</td><td><code>cookie.html</code></td><td>Set a cookie/localStorage in run config; heal run must still show it (basic auth: external)</td></tr><tr><td>S31</td><td><code>checkout.html</code></td><td>Build with Visual Testing enabled -> healing is disabled</td></tr><tr><td>S32</td><td><code>checkout.html</code></td><td>Cloud build: healed AI test -> healed-execution details in XML report + status API</td></tr><tr><td>S33</td><td><code>email.html</code></td><td>?v=2 drifts the verify link/OTP (heals); assert wrong OTP (no heal). Real OTP: temp-mail.org</td></tr><tr><td>S34</td><td><code>checkout.html</code></td><td>Cloud build: fragile test -> 'healing in progress' banner, rerun with healed version, build duration</td></tr></table>
-</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LCA Self-Healing Playground</title>
+<meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
+<meta name="theme-color" content="#080B14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23080B14'/%3E%3Cpath d='M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35' fill='none' stroke='%233FE0A6' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LCA Self-Healing Playground — diagnostics console
+   Tri-state semaphore: healthy (mint) / drifted (amber) / gone (rose)
+   ============================================================ */
+
+:root{
+  /* surfaces — deep blue-ink, not pure black */
+  --ink:        #080B14;
+  --ink-2:      #0C111E;
+  --panel:      #111726;
+  --panel-2:    #151D30;
+  --line:       #233048;
+  --line-soft:  #1A2336;
+
+  /* text */
+  --text:       #E8EDF7;
+  --muted:      #8A97AE;
+  --faint:      #5E6A82;
+
+  /* tri-state — the heal state machine, the heart of the brief */
+  --healthy:    #3FE0A6;   /* mint  — locators intact */
+  --drift:      #F6B53C;   /* amber — broken but healable */
+  --gone:       #FF6478;   /* rose  — removed, unhealable */
+
+  /* interaction / AI accent */
+  --signal:     #5BC8FF;
+  --signal-dim: rgba(91,200,255,.16);
+
+  --healthy-dim: rgba(63,224,166,.14);
+  --drift-dim:   rgba(246,181,60,.14);
+  --gone-dim:    rgba(255,100,120,.14);
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --maxw: 1120px;
+  --r: 14px;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(1100px 600px at 78% -8%, rgba(91,200,255,.07), transparent 60%),
+    radial-gradient(900px 500px at 8% 4%, rgba(63,224,166,.05), transparent 55%),
+    var(--ink);
+  color:var(--text);
+  font-family:var(--font-body);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"tnum" 1, "cv05" 1;
+}
+a{color:var(--signal);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:6px}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+
+.mono{font-family:var(--font-mono)}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--faint);
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:30;
+  background:rgba(8,11,20,.72);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line-soft);
+}
+.topbar__in{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 22px;max-width:var(--maxw);margin:0 auto;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand__mark{flex:none;width:34px;height:34px;display:block}
+.brand__txt{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.brand__name{font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.01em;white-space:nowrap}
+.brand__sub{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+
+/* compact live flag chip in the bar */
+.flagchip{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:7px 13px;border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--panel);
+  font-family:var(--font-mono);font-size:12px;font-weight:500;
+  white-space:nowrap;
+  transition:border-color .35s, background .35s;
+}
+.flagchip__dot{width:9px;height:9px;border-radius:50%;background:var(--faint);box-shadow:0 0 0 0 transparent;flex:none}
+.flagchip__label{color:var(--muted)}
+.flagchip__state{color:var(--text);letter-spacing:.02em}
+
+/* state-driven coloring, applied to [data-state] containers */
+[data-state="healthy"]{--state:var(--healthy);--state-dim:var(--healthy-dim)}
+[data-state="drift"]  {--state:var(--drift);  --state-dim:var(--drift-dim)}
+[data-state="gone"]   {--state:var(--gone);   --state-dim:var(--gone-dim)}
+[data-state]{--state:var(--faint);--state-dim:rgba(94,106,130,.14)}
+[data-state="healthy"],[data-state="drift"],[data-state="gone"]{}
+
+.flagchip[data-state] .flagchip__dot{background:var(--state);box-shadow:0 0 10px var(--state)}
+.flagchip[data-state]{border-color:color-mix(in srgb, var(--state) 45%, var(--line))}
+.flagchip[data-state] .flagchip__state{color:var(--state)}
+
+/* ---------- hero / sections ---------- */
+main{padding:40px 0 80px}
+.hero-head{max-width:760px;margin:14px 0 26px}
+.hero-head h1{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:clamp(30px,5.4vw,52px);
+  line-height:1.02;letter-spacing:-.02em;
+  margin:14px 0 14px;
+}
+.hero-head h1 .accent{color:var(--healthy)}
+.hero-head p{font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:62ch;margin:0}
+.hero-head .key{color:var(--text);font-weight:500}
+
+/* ---------- the monitor (signature element) ---------- */
+.monitor{
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:linear-gradient(180deg,var(--panel) 0%, var(--ink-2) 100%);
+  overflow:hidden;
+  box-shadow:0 24px 60px -32px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.monitor__bezel{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 18px;border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg, rgba(255,255,255,.025), transparent);
+}
+.bezel__id{display:flex;align-items:center;gap:10px}
+.bezel__id .dotrow{display:flex;gap:5px}
+.bezel__id .dotrow i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block}
+.live{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--state,var(--faint));box-shadow:0 0 8px var(--state,transparent)}
+
+/* the oscilloscope screen */
+.screen{
+  position:relative;
+  height:clamp(220px,34vw,300px);
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(255,255,255,.035), transparent 55%),
+    #060912;
+  overflow:hidden;
+}
+/* graticule grid */
+.screen::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(130,150,180,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130,150,180,.06) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(130% 120% at 50% 50%, #000 60%, transparent 100%);
+}
+/* center reference line */
+.screen::after{
+  content:"";position:absolute;left:0;right:0;top:50%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(130,150,180,.18),transparent);
+}
+.wave{position:absolute;inset:0;width:200%;height:100%;display:block}
+.wave path{
+  fill:none;
+  stroke:var(--state,var(--signal));
+  stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
+  filter:drop-shadow(0 0 7px var(--state,var(--signal)));
+  transition:stroke .5s ease;
+}
+.screen[data-state="healthy"] .wave{animation:scope 9s linear infinite}
+.screen[data-state="drift"]   .wave{animation:scope 4.2s linear infinite}
+.screen[data-state="gone"]    .wave{animation:none}
+@keyframes scope{to{transform:translateX(-50%)}}
+
+/* boot flicker, once */
+.screen{animation:boot .7s ease-out 1}
+@keyframes boot{0%{filter:brightness(.2)}18%{filter:brightness(1.5)}26%{filter:brightness(.6)}40%{filter:brightness(1.25)}100%{filter:brightness(1)}}
+
+/* readout overlay on the screen */
+.readout{position:absolute;left:22px;bottom:18px;right:22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:none}
+.readout__state{
+  font-family:var(--font-display);font-weight:600;
+  font-size:clamp(34px,7vw,64px);line-height:.9;letter-spacing:-.02em;
+  color:var(--state,var(--text));
+  text-shadow:0 0 26px color-mix(in srgb, var(--state,#fff) 45%, transparent);
+}
+.readout__src{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;
+  color:var(--muted);text-align:right;white-space:nowrap;
+  padding-bottom:6px;
+}
+.readout__src b{color:var(--state,var(--text));font-weight:500}
+
+/* plate beneath the screen */
+.monitor__plate{
+  display:flex;align-items:center;gap:14px;
+  padding:15px 18px;border-top:1px solid var(--line-soft);
+  background:var(--panel);
+}
+.plate__pulse{flex:none;width:10px;height:10px;border-radius:50%;background:var(--state,var(--faint));box-shadow:0 0 12px var(--state,transparent)}
+.meaning{margin:0;font-size:14.5px;color:var(--text)}
+.meaning span{color:var(--muted)}
+
+/* ---------- control row (resolution order + toggles) ---------- */
+.controls{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px}
+.card{
+  border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);padding:18px 18px 16px;
+}
+.card > h3{
+  font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);margin:0 0 14px;
+}
+
+/* resolution order: first match wins */
+.reso{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.reso__node{
+  flex:1 1 0;min-width:0;
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--ink-2);padding:11px 12px;
+  display:flex;flex-direction:column;gap:3px;
+  transition:border-color .3s, background .3s, box-shadow .3s;
+}
+.reso__k{font-family:var(--font-mono);font-size:12.5px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reso__v{font-size:11px;color:var(--faint)}
+.reso__arrow{align-self:center;color:var(--faint);font-size:15px;flex:none}
+.reso__node.is-active{
+  border-color:var(--state,var(--signal));
+  background:var(--state-dim,var(--signal-dim));
+  box-shadow:0 0 0 1px var(--state,var(--signal)) inset;
+}
+.reso__node.is-active .reso__v{color:var(--state,var(--signal))}
+.reso__note{margin:12px 0 0;font-size:12.5px;color:var(--muted)}
+.reso__note code{font-family:var(--font-mono);font-size:12px;background:var(--ink);padding:1px 6px;border-radius:5px;color:var(--text)}
+
+/* override switch */
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px}
+.switch-row label{font-size:14px;font-weight:500;cursor:pointer}
+.switch{position:relative;width:50px;height:28px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch .track{
+  position:absolute;inset:0;border-radius:999px;background:var(--ink);
+  border:1px solid var(--line);transition:background .25s, border-color .25s;
+}
+.switch .knob{
+  position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:var(--muted);transition:transform .25s cubic-bezier(.3,1.4,.5,1), background .25s;
+}
+.switch input:checked + .track{background:var(--drift-dim);border-color:var(--drift)}
+.switch input:checked + .track .knob{transform:translateX(22px);background:var(--drift);box-shadow:0 0 10px var(--drift)}
+.switch-help{font-size:12.5px;color:var(--muted);margin:0}
+.switch-help code{font-family:var(--font-mono);font-size:11.5px;background:var(--ink);padding:1px 6px;border-radius:5px;color:var(--text)}
+.switch-note{font-size:12px;color:var(--drift);margin:8px 0 0;display:none;font-family:var(--font-mono)}
+.switch-note.show{display:block}
+
+.toggle-shared{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-soft)}
+.toggle-shared p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
+.toggle-shared .cmd{
+  font-family:var(--font-mono);font-size:12px;color:var(--text);
+  background:var(--ink);border:1px solid var(--line-soft);border-radius:8px;
+  padding:8px 10px;display:flex;flex-wrap:wrap;gap:4px 10px;
+}
+.toggle-shared .cmd b{color:var(--healthy);font-weight:500}
+.toggle-shared .cmd .on{color:var(--drift)}
+.toggle-shared .cmd .gone{color:var(--gone)}
+
+/* ---------- section headers ---------- */
+.section{margin-top:56px}
+.section__head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.section__head h2{font-family:var(--font-display);font-weight:600;font-size:clamp(20px,3vw,26px);letter-spacing:-.01em;margin:0}
+.section__head .count{font-family:var(--font-mono);font-size:12px;color:var(--faint);letter-spacing:.1em}
+
+/* ---------- scenario cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px}
+.scn{
+  position:relative;display:flex;flex-direction:column;gap:0;
+  border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);padding:0;
+  text-decoration:none;color:inherit;overflow:hidden;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.scn:hover{transform:translateY(-3px);border-color:color-mix(in srgb, var(--state) 55%, var(--line));box-shadow:0 18px 36px -22px rgba(0,0,0,.9);text-decoration:none}
+.scn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--state);opacity:.85}
+.scn__top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 16px 8px}
+.scn__file{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.scn__tag{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--state);background:var(--state-dim);border:1px solid color-mix(in srgb,var(--state) 40%, transparent);
+  padding:2px 8px;border-radius:999px;white-space:nowrap;
+}
+.scn__title{font-family:var(--font-display);font-weight:600;font-size:17px;margin:2px 16px 6px;letter-spacing:-.01em}
+.scn__desc{margin:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.5;flex:1}
+.scn__params{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 15px}
+.scn__params code{font-family:var(--font-mono);font-size:11px;color:var(--text);background:var(--ink);border:1px solid var(--line-soft);border-radius:6px;padding:2px 7px}
+.scn__go{padding:0 16px 15px;font-family:var(--font-mono);font-size:11px;color:var(--faint);display:flex;align-items:center;gap:6px}
+.scn:hover .scn__go{color:var(--state)}
+
+/* ---------- case matrix ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.search{
+  flex:1 1 220px;min-width:180px;
+  font-family:var(--font-mono);font-size:13px;color:var(--text);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:9px 13px;
+}
+.search::placeholder{color:var(--faint)}
+.chip{
+  font-family:var(--font-mono);font-size:12px;
+  background:var(--panel);border:1px solid var(--line);color:var(--muted);
+  padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  transition:all .18s ease;
+}
+.chip:hover{border-color:var(--faint);color:var(--text)}
+.chip[aria-pressed="true"]{background:var(--text);color:var(--ink);border-color:var(--text);font-weight:500}
+.chip .n{opacity:.55;margin-left:5px}
+.chip[data-f="heals"][aria-pressed="true"]{background:var(--healthy);border-color:var(--healthy);color:#04231a}
+.chip[data-f="noheal"][aria-pressed="true"]{background:var(--gone);border-color:var(--gone);color:#2c0710}
+.chip[data-f="mixed"][aria-pressed="true"]{background:var(--drift);border-color:var(--drift);color:#2c1c02}
+.chip[data-f="app"][aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#04202c}
+
+.tablewrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.tablescroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
+thead th{
+  position:sticky;top:0;background:var(--ink-2);
+  font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+  text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);
+}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--muted)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--ink-2)}
+.c-case{font-family:var(--font-mono);font-weight:500;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:9px}
+.c-case .pip{width:8px;height:8px;border-radius:50%;flex:none}
+.pip.heals{background:var(--healthy)}
+.pip.noheal{background:var(--gone)}
+.pip.mixed{background:var(--drift)}
+.pip.app{background:var(--signal)}
+.c-page{white-space:normal}
+.c-page code, .c-page a{font-family:var(--font-mono);font-size:12.5px;background:var(--ink);border:1px solid var(--line-soft);border-radius:6px;padding:2px 7px;color:var(--text);display:inline-block;margin:1px 0}
+.c-page a:hover{border-color:var(--signal);text-decoration:none}
+.c-how{color:var(--muted);max-width:60ch}
+.noresults{padding:34px 16px;text-align:center;color:var(--faint);font-family:var(--font-mono);font-size:13px}
+
+/* ---------- footer ---------- */
+.foot{margin-top:64px;border-top:1px solid var(--line-soft);padding:26px 0 10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.foot p{margin:0;font-size:13px;color:var(--faint)}
+.foot .pillrow{display:flex;gap:8px;flex-wrap:wrap}
+.foot a.pill{font-family:var(--font-mono);font-size:12px;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--muted)}
+.foot a.pill:hover{border-color:var(--signal);color:var(--signal);text-decoration:none}
+
+/* ---------- entrance ---------- */
+.reveal{opacity:0;transform:translateY(16px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- responsive ---------- */
+@media (max-width:760px){
+  .controls{grid-template-columns:1fr}
+  .readout{position:static;padding:16px 18px 4px;flex-direction:column;align-items:flex-start;gap:6px}
+  .readout__src{text-align:left;padding-bottom:0}
+  .screen{height:auto;min-height:170px}
+  .reso{flex-direction:column}
+  .reso__arrow{transform:rotate(90deg)}
+  .reso__node{flex:1 1 auto}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .reveal{animation:none;opacity:1;transform:none}
+  .wave{animation:none !important}
+  .screen{animation:none}
+  *{scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__in">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+        <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand__txt">
+        <span class="brand__name">Self-Healing Playground</span>
+        <span class="brand__sub">LCA · BrowserStack</span>
+      </span>
+    </div>
+    <div class="flagchip" id="flagchip" title="Live break-flag state">
+      <span class="flagchip__dot"></span>
+      <span class="flagchip__label">flag</span>
+      <span class="flagchip__state" id="chipState">reading…</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero-head reveal">
+    <span class="eyebrow">Agentic test target · same URL throughout</span>
+    <h1>Break a locator on demand.<br>Watch the heal <span class="accent">fire</span>.</h1>
+    <p>Record an agentic test once, then flip a single shared flag to drift the captured locator — <span class="key">no URL change</span>. Re-run the same saved test and the heal either recovers it, refuses it, or runs out of budget.</p>
+  </div>
+
+  <!-- SIGNATURE: live oscilloscope reading the real break flag -->
+  <section class="monitor reveal" style="animation-delay:.05s" aria-label="Live heal-signal monitor">
+    <div class="monitor__bezel">
+      <span class="bezel__id">
+        <span class="dotrow"><i></i><i></i><i></i></span>
+        <span class="eyebrow">Heal signal · CH-01</span>
+      </span>
+      <span class="live" id="liveTag"><i></i> live</span>
+    </div>
+    <div class="screen" id="screen" data-state="">
+      <svg class="wave" id="wave" viewBox="0 0 2400 220" preserveAspectRatio="none" aria-hidden="true">
+        <path id="wavePath" d=""></path>
+      </svg>
+      <div class="readout">
+        <div class="readout__state" id="stateWord">———</div>
+        <div class="readout__src" id="stateSrc">resolving via <b>flag.json</b></div>
+      </div>
+    </div>
+    <div class="monitor__plate" id="plate" data-state="">
+      <span class="plate__pulse"></span>
+      <p class="meaning" id="stateMeaning">Reading the current break flag for this URL…</p>
+    </div>
+  </section>
+
+  <!-- control row -->
+  <div class="controls reveal" style="animation-delay:.1s">
+    <div class="card" id="resoCard" data-state="">
+      <h3>Resolution order · first match wins</h3>
+      <div class="reso">
+        <div class="reso__node" id="reso-url">
+          <span class="reso__k">URL ?v=2 / ?gone</span>
+          <span class="reso__v">per-tab, manual</span>
+        </div>
+        <span class="reso__arrow">›</span>
+        <div class="reso__node" id="reso-local">
+          <span class="reso__k">localStorage</span>
+          <span class="reso__v">this browser</span>
+        </div>
+        <span class="reso__arrow">›</span>
+        <div class="reso__node" id="reso-flag">
+          <span class="reso__k">flag.json</span>
+          <span class="reso__v">shared · all runs</span>
+        </div>
+      </div>
+      <p class="reso__note">This is exactly what <code>flag.js</code> resolves on every page — so a saved test never re-records just to change the break.</p>
+    </div>
+
+    <div class="card">
+      <h3>Toggle the break</h3>
+      <div class="switch-row">
+        <label for="ov">Arm break in this browser</label>
+        <span class="switch">
+          <input type="checkbox" id="ov" aria-describedby="ovhelp">
+          <span class="track"><span class="knob"></span></span>
+        </span>
+      </div>
+      <p class="switch-help" id="ovhelp">Writes <code>localStorage.lcaBreak</code>. Drifts every scenario page in this browser only.</p>
+      <p class="switch-note" id="ovNote">A URL param is overriding this right now.</p>
+      <div class="toggle-shared">
+        <p>Shared flag (every run, ~30–60s to land):</p>
+        <div class="cmd"><b>Actions →</b> toggle-heal → <span class="on">on</span> · off · <span class="gone">gone</span></div>
+        <div class="cmd" style="margin-top:6px">$ ./toggle.sh <span class="on">on</span> | off | <span class="gone">gone</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- scenario pages -->
+  <section class="section reveal" style="animation-delay:.15s">
+    <div class="section__head">
+      <h2>Scenario targets</h2>
+      <span class="count" id="scnCount">10 pages</span>
+    </div>
+    <div class="grid" id="scnGrid"></div>
+  </section>
+
+  <!-- case matrix -->
+  <section class="section reveal" style="animation-delay:.2s">
+    <div class="section__head">
+      <h2>Case matrix</h2>
+      <span class="count" id="caseCount">S1 – S34</span>
+    </div>
+    <div class="filters">
+      <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases">
+      <button class="chip" data-f="all"    aria-pressed="true">All<span class="n" id="n-all"></span></button>
+      <button class="chip" data-f="heals"  aria-pressed="false">Heals<span class="n" id="n-heals"></span></button>
+      <button class="chip" data-f="noheal" aria-pressed="false">Won't heal<span class="n" id="n-noheal"></span></button>
+      <button class="chip" data-f="mixed"  aria-pressed="false">Mixed legs<span class="n" id="n-mixed"></span></button>
+      <button class="chip" data-f="app"    aria-pressed="false">App &amp; config<span class="n" id="n-app"></span></button>
+    </div>
+    <div class="tablewrap">
+      <div class="tablescroll">
+        <table>
+          <thead><tr><th style="width:88px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
+          <tbody id="caseBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Same URL the whole time — the flag decides the break.</p>
+    <div class="pillrow">
+      <a class="pill" href="README.md">README</a>
+      <a class="pill" href="flag.json">flag.json</a>
+      <a class="pill" href="api/todo.json">api/todo.json</a>
+    </div>
+  </footer>
+
+</main>
+
+<script src="flag.js"></script>
+<script>
+/* ----------------------------------------------------------
+   1. Data
+---------------------------------------------------------- */
+var SCENARIOS = [
+  {file:"checkout.html",   o:"heals",  title:"Checkout",          desc:"The primary heal target. The break relocates the button into a menu and plants a 'Continue' decoy; <code>?gone=1</code> removes it entirely.", params:["?v=2","?gone=1"]},
+  {file:"validation.html", o:"mixed",  title:"Validation",        desc:"Drifts <code>#status-badge</code> to trigger a heal. <code>?wrong=1</code> flips the badge text and <code>?remove=1</code> drops the promo — mismatches that must never heal.", params:["?wrong=1","?remove=1"]},
+  {file:"frames.html",     o:"heals",  title:"iFrame + Shadow DOM",desc:"The same Checkout button, nested inside an iframe and a shadow root. The heal has to re-find it across both boundaries.", params:["?v=2"]},
+  {file:"flow.html",       o:"heals",  title:"Multi-step flow",    desc:"Search → Add to cart → Checkout. The break drifts the middle step, forcing a replay to the first failing step.", params:[]},
+  {file:"data.html",       o:"mixed",  title:"Producer / consumer",desc:"Producer shows a token to extract; the break drifts its id. The consumer verifies the captured value via <code>?use=</code>.", params:["?use=HEAL-7421"]},
+  {file:"email.html",      o:"mixed",  title:"Verification inbox", desc:"Drifts the verify-link and OTP ids so a heal must re-derive them. Asserting the wrong OTP is a mismatch that won't heal.", params:["?v=2"]},
+  {file:"timing.html",     o:"app",    title:"Late element",       desc:"The button appears after <code>?delay=ms</code> (default 5000) — exercises intelligent wait. A huge delay is a genuine timeout, not a heal.", params:["?delay=5000"]},
+  {file:"visual.html",     o:"noheal", title:"Visual diff",        desc:"Colour and number randomise on every load, so a visual baseline never matches. A real failure — never healed.", params:["random"]},
+  {file:"cookie.html",     o:"app",    title:"Browser config",     desc:"Echoes the cookies and localStorage the run actually sees. Confirms a heal run still carries your configured state.", params:["demoConfig"]},
+  {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]}
+];
+
+var CASES = [
+  ["S1","heals", "checkout.html",                                "Record click Checkout on default; re-run ?v=2 → locator heal recovers, passes"],
+  ["S2","noheal","validation.html + visual.html",                "Assert wrong #total / removed #promo (?remove=1) / visual mismatch → NOT healed"],
+  ["S3","app",   "checkout.html",                                "App: record a NON-agentic test; verify no adaptive heal; check run-only vs edit RBAC"],
+  ["S4","app",   "checkout.html",                                "App: healing flag OFF (no heal) vs both flags ON (heals)"],
+  ["S5","app",   "checkout.html",                                "App: edit a step → new version → restore"],
+  ["S6","heals", "checkout.html",                                "Record Checkout; re-run ?v=2 (relocated, no visible text) → adaptive re-derivation"],
+  ["S7","heals", "checkout.html?v=2",                            "Decoy 'Continue' is present → heal must hit the real Checkout, never the decoy"],
+  ["S8","mixed", "checkout.html + validation.html + bad host",   "Fragility heals; validation mismatch & infra refused"],
+  ["S9","noheal","checkout.html?gone=1",                         "Button removed (unhealable): heal fails 3× → budget exhausted; then edit → new version resets"],
+  ["S10","heals","checkout.html",                                "Suite: run across Chrome+Firefox+Edge → heal on Chrome, reuse on failing browsers"],
+  ["S11","app",  "checkout.html + a non-AI test",                "Suite: auto-rerun ON (no adaptive heal) vs OFF (heal AI only)"],
+  ["S12","app",  "checkout.html",                                "App UI: healed run → 'AI healed' badge (only) + AI sparkle in build details"],
+  ["S13","heals","frames.html",                                  "?v=2 drifts the iframe + shadow-DOM button → adaptive re-finds across the boundary"],
+  ["S14","noheal","api/todo.json + httpbin.org/status/401,500",  "API failure (status / JSON mismatch) → never healed"],
+  ["S15","noheal","download.html + visual.html",                 "Wrong filename / visual mismatch → not healed; visual baselines stay per-browser"],
+  ["S16","app",  "timing.html",                                  "?delay element for intelligent-wait; set fail-and-stop / fail-but-continue in app"],
+  ["S17","app",  "checkout.html",                                "App: recorder edit (heal off) / restore AI version (on) / 'Save as steps' (never)"],
+  ["S18","app",  "checkout.html",                                "App: view-test Run vs Build run → no double-heal / conflicting versions"],
+  ["S19","app",  "checkout.html (scheduled) + the-internet/upload","Scheduled heal; 'Aborted' via OS file dialog doesn't burn budget; auto-rerun = no heal"],
+  ["S20","heals","data.html",                                    "Extract #token (?v=2 drifts) → build report keeps the heal + preserves {{token}}"],
+  ["S21","noheal","checkout.html (used as a module)",            "Module/shared step fails → never healed; surrounding AI steps still heal"],
+  ["S22","mixed","checkout.html",                                "?v=2 → heal → new 'Auto-healed by BrowserStack AI' version; ?gone=1 → heal fails → NO version"],
+  ["S23","heals","checkout.html",                                "Record NON-agentic; re-run ?v=2 → tier-1 locator heal works; adaptive NOT invoked"],
+  ["S24","mixed","validation.html",                              "?v=2 drifts #status-badge (element-not-found → heals); ?wrong=1 (mismatch → no heal)"],
+  ["S25","heals","flow.html",                                    "?v=2 drifts the middle step → replay to first failing step, re-record everything onward"],
+  ["S26","app",  "checkout.html",                                "Capacity: many parallel runs; shared lcnc-ai-user account + 2× healing parallels"],
+  ["S27","heals","checkout.html",                                "Run on an emulated mobile browser → heals like desktop Chrome"],
+  ["S28","heals","checkout.html",                                "Suite executed blockwise / sequential / parallel → heals in each (order not preserved)"],
+  ["S29","mixed","data.html",                                    "Test A extracts #token, Test B ?use=…; fail A's capture (heal) vs B bad data (no heal)"],
+  ["S30","app",  "cookie.html",                                  "Set a cookie/localStorage in run config; heal run must still show it (basic auth: external)"],
+  ["S31","app",  "checkout.html",                                "Build with Visual Testing enabled → healing is disabled"],
+  ["S32","app",  "checkout.html",                                "Cloud build: healed AI test → healed-execution details in XML report + status API"],
+  ["S33","mixed","email.html",                                   "?v=2 drifts the verify link/OTP (heals); assert wrong OTP (no heal). Real OTP: temp-mail.org"],
+  ["S34","heals","checkout.html",                                "Cloud build: fragile test → 'healing in progress' banner, rerun with healed version, build duration"]
+];
+
+/* ----------------------------------------------------------
+   2. Render scenario cards
+---------------------------------------------------------- */
+(function(){
+  var st = {heals:"healthy", noheal:"gone", mixed:"drift", app:"app"};
+  var tag = {heals:"heals", noheal:"won't heal", mixed:"mixed", app:"config"};
+  // map our 4 outcome buckets onto the tri-state colour vars; "app" gets the signal accent
+  var grid = document.getElementById("scnGrid"), html = "";
+  SCENARIOS.forEach(function(s){
+    var stateAttr = (s.o==="app") ? "" : st[s.o];
+    var styleVar  = (s.o==="app") ? 'style="--state:var(--signal);--state-dim:var(--signal-dim)"' : "";
+    var params = s.params.map(function(p){return "<code>"+p+"</code>"}).join("");
+    html += '<a class="scn" href="'+s.file+'" data-state="'+stateAttr+'" '+styleVar+'>'
+      + '<div class="scn__top"><span class="scn__file">'+s.file+'</span><span class="scn__tag">'+tag[s.o]+'</span></div>'
+      + '<div class="scn__title">'+s.title+'</div>'
+      + '<p class="scn__desc">'+s.desc+'</p>'
+      + (params?'<div class="scn__params">'+params+'</div>':'')
+      + '<div class="scn__go">open target →</div>'
+      + '</a>';
+  });
+  grid.innerHTML = html;
+})();
+
+/* ----------------------------------------------------------
+   3. Render + filter case matrix
+---------------------------------------------------------- */
+(function(){
+  var body = document.getElementById("caseBody");
+  var LOCAL = /^(checkout|validation|frames|visual|timing|flow|data|email|cookie|download)\.html(\?[^\s)]*)?|api\/todo\.json/g;
+  function linkify(txt){
+    return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; });
+  }
+  var rows = CASES.map(function(c){
+    return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'
+      + '<td><span class="c-case"><span class="pip '+c[1]+'"></span>'+c[0]+'</span></td>'
+      + '<td class="c-page">'+linkify(c[2])+'</td>'
+      + '<td class="c-how">'+c[3]+'</td>'
+      + '</tr>';
+  }).join("");
+  body.innerHTML = rows + '<tr id="noRow" style="display:none"><td colspan="3" class="noresults">No cases match.</td></tr>';
+
+  // counts
+  var counts = {all:CASES.length, heals:0, noheal:0, mixed:0, app:0};
+  CASES.forEach(function(c){counts[c[1]]++});
+  Object.keys(counts).forEach(function(k){var el=document.getElementById("n-"+k); if(el) el.textContent=counts[k];});
+
+  var search = document.getElementById("search");
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
+  var activeFilter = "all";
+
+  function apply(){
+    var q = search.value.trim().toLowerCase();
+    var shown = 0;
+    Array.prototype.slice.call(body.querySelectorAll("tr[data-o]")).forEach(function(tr){
+      var okF = activeFilter==="all" || tr.getAttribute("data-o")===activeFilter;
+      var okQ = !q || tr.getAttribute("data-text").indexOf(q) > -1;
+      var vis = okF && okQ;
+      tr.style.display = vis ? "" : "none";
+      if(vis) shown++;
+    });
+    document.getElementById("noRow").style.display = shown ? "none" : "";
+    document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S34" : shown+" of "+CASES.length;
+  }
+
+  chips.forEach(function(ch){
+    ch.addEventListener("click", function(){
+      activeFilter = ch.getAttribute("data-f");
+      chips.forEach(function(c){c.setAttribute("aria-pressed", c===ch ? "true":"false");});
+      apply();
+    });
+  });
+  search.addEventListener("input", apply);
+})();
+
+/* ----------------------------------------------------------
+   4. Waveform geometry (periodic over 1200 → seamless scroll)
+---------------------------------------------------------- */
+function buildWave(kind){
+  var W=2400, cy=110, step=4, d="", x, y;
+  for(x=0; x<=W; x+=step){
+    if(kind==="healthy"){
+      y = cy + 23*Math.sin(x/150*2*Math.PI) + 7*Math.sin(x/300*2*Math.PI);
+    } else if(kind==="drift"){
+      y = cy + 9*Math.sin(x/120*2*Math.PI);
+      var c = Math.round(x/400)*400, dd = x - c;        // a sharp spike every 400px = the locator break
+      y -= 80*Math.exp(-(dd*dd)/(2*15*15));
+    } else {                                            // gone → flatline
+      y = cy + (Math.abs(x-60)<3 ? -3 : 0);             // one faint last blip, then nothing
+    }
+    d += (x===0?"M":"L") + x + " " + y.toFixed(1) + " ";
+  }
+  return d;
+}
+
+/* ----------------------------------------------------------
+   5. Resolve live state (reuses flag.js lcaState) + render
+---------------------------------------------------------- */
+var COPY = {
+  healthy:{word:"HEALTHY",   meaning:"Locators intact. <span>The saved test re-runs clean — no heal needed.</span>", wave:"healthy"},
+  drift:  {word:"DRIFTED",   meaning:"Captured locator broken. <span>A heal must fire to recover the step.</span>",   wave:"drift"},
+  gone:   {word:"UNHEALABLE",meaning:"Target removed. <span>Heals fail until the budget is exhausted.</span>",        wave:"gone"}
+};
+var SRC = {
+  url_drift:'overridden by URL <b>?v=2</b>',
+  url_gone: 'overridden by URL <b>?gone=1</b>',
+  local:    'set in <b>localStorage</b> (this browser)',
+  flag:     'resolved from <b>flag.json</b> (shared)'
+};
+
+function detectSource(){
+  var p = new URLSearchParams(location.search);
+  if(p.has("gone")) return "url_gone";
+  if(p.get("v")==="2" || p.has("break")) return "url_drift";
+  if(localStorage.getItem("lcaBreak")==="1") return "local";
+  return "flag";
+}
+
+var lastState = null;
+async function resolveAndRender(){
+  var raw;
+  try { raw = await lcaState(); } catch(e){ raw = false; }
+  var state = raw==="gone" ? "gone" : (raw===true || raw==="v2") ? "drift" : "healthy";
+  var src = detectSource();
+  // localStorage can only force "drift"; if state isn't drift, the source is really the flag/url
+  if(src==="local" && state!=="drift") src = "flag";
+
+  // paint everything that is state-driven
+  ["screen","plate","resoCard","flagchip"].forEach(function(id){
+    document.getElementById(id).setAttribute("data-state", state);
+  });
+  document.getElementById("stateWord").textContent = COPY[state].word;
+  document.getElementById("stateMeaning").innerHTML = COPY[state].meaning;
+  document.getElementById("stateSrc").innerHTML = SRC[src];
+  document.getElementById("chipState").textContent = COPY[state].word.toLowerCase();
+
+  // highlight the winning node in the resolution diagram
+  var winner = (src==="url_drift"||src==="url_gone") ? "reso-url" : src==="local" ? "reso-local" : "reso-flag";
+  ["reso-url","reso-local","reso-flag"].forEach(function(id){
+    document.getElementById(id).classList.toggle("is-active", id===winner);
+  });
+
+  // override note: a URL param sits above the localStorage switch
+  document.getElementById("ovNote").classList.toggle("show", src==="url_drift"||src==="url_gone");
+
+  // only rebuild the wave when the state actually changes (keeps the scroll smooth)
+  if(state !== lastState){
+    document.getElementById("wavePath").setAttribute("d", buildWave(COPY[state].wave));
+    lastState = state;
+  }
+}
+
+// override switch ↔ localStorage.lcaBreak
+(function(){
+  var ov = document.getElementById("ov");
+  ov.checked = localStorage.getItem("lcaBreak")==="1";
+  ov.addEventListener("change", function(){
+    if(ov.checked) localStorage.setItem("lcaBreak","1");
+    else localStorage.removeItem("lcaBreak");
+    resolveAndRender();
+  });
+})();
+
+resolveAndRender();
+// keep the monitor live — the shared flag lands ~30–60s after a toggle
+setInterval(resolveAndRender, 15000);
+</script>
+</body>
+</html>
