@@ -1,8 +1,32 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Config - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}pre{background:#f3f3f3;padding:10px}</style></head>
-<body><h2>Browser config check</h2>
-<p style="color:#777;font-size:13px">Shows cookies / localStorage seen by the page. Set a cookie or localStorage key in your LCA run config; the heal run should still show it. (Basic auth: use the-internet/basic_auth, admin/admin.)</p>
-<pre id="out"></pre>
-<script>
-document.getElementById('out').textContent='cookies: '+(document.cookie||'(none)')+'\nlocalStorage.demoConfig: '+(localStorage.getItem('demoConfig')||'(missing)');
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser config · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="cookie.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Config carry-over</span>
+      <h1>Browser config check</h1>
+      <p class="page__note">Shows the cookies / localStorage the page sees. Set a cookie or localStorage key in your LCA run config; the heal run should still show it. (Basic auth: use the-internet/basic_auth, admin/admin.)</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <pre id="out"></pre>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  document.getElementById('out').textContent='cookies: '+(document.cookie||'(none)')+'\nlocalStorage.demoConfig: '+(localStorage.getItem('demoConfig')||'(missing)');
+  </script>
+</body>
+</html>

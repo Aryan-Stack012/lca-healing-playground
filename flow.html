@@ -1,11 +1,38 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Flow - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px} button{margin:4px 0}</style></head>
-<body><h2>Multi-step flow</h2>
-<p class="muted">Search -> Add to cart -> Checkout. Shared flag drifts the middle (Add to cart) step (same URL).</p>
-<div id="s1"><button id="search">Search</button></div><div id="s2"></div><div id="s3"></div><div id="result"></div>
-<script src="flag.js"></script>
-<script>
-lcaBreak().then(function(v2){
-  var addId=v2?'add_v2':'add-to-cart',addTxt=v2?'+ Cart':'Add to cart';
-  document.getElementById('search').onclick=function(){document.getElementById('s2').innerHTML='<button id="'+addId+'" aria-label="Add to cart">'+addTxt+'</button>';document.querySelector('#s2 button').onclick=function(){document.getElementById('s3').innerHTML='<button id="checkout" aria-label="Checkout">Checkout</button>';document.querySelector('#s3 button').onclick=function(){document.getElementById('result').textContent='✅ Order placed';};};};
-});
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-step flow · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="flow.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Mid-flow drift</span>
+      <h1>Multi-step flow</h1>
+      <p class="page__note">Search → Add to cart → Checkout. The shared flag drifts the middle (Add to cart) step (same URL), forcing a replay to the first failing step.</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <div id="s1"><button id="search">Search</button></div>
+      <div id="s2"></div>
+      <div id="s3"></div>
+      <div id="result"></div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  lcaBreak().then(function(v2){
+    var addId=v2?'add_v2':'add-to-cart',addTxt=v2?'+ Cart':'Add to cart';
+    document.getElementById('search').onclick=function(){document.getElementById('s2').innerHTML='<button id="'+addId+'" aria-label="Add to cart">'+addTxt+'</button>';document.querySelector('#s2 button').onclick=function(){document.getElementById('s3').innerHTML='<button id="checkout" aria-label="Checkout">Checkout</button>';document.querySelector('#s3 button').onclick=function(){document.getElementById('result').textContent='✅ Order placed';};};};
+  });
+  </script>
+</body>
+</html>

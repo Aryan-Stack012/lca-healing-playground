@@ -1,12 +1,37 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Inbox - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px}</style></head>
-<body><h2>Simulated verification email</h2>
-<p class="muted">Shared flag drifts the verify link / OTP ids (same URL). (Real OTP: temp-mail.org.)</p>
-<div id="mail"></div><div id="result"></div>
-<script src="flag.js"></script>
-<script>
-lcaBreak().then(function(v2){
-  var lid=v2?'verify_v2':'verify-link',oid=v2?'otp_v2':'otp',ltxt=v2?'Confirm now':'Verify';
-  document.getElementById('mail').innerHTML='<p>Subject: Verify your account</p><p><a href="#" id="'+lid+'" aria-label="Verify">'+ltxt+'</a></p><p>Code: <span id="'+oid+'">482913</span></p>';
-  document.getElementById(lid).onclick=function(e){e.preventDefault();document.getElementById('result').textContent='✅ verified';};
-});
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification inbox · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="email.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Verification inbox</span>
+      <h1>Simulated verification email</h1>
+      <p class="page__note">The shared flag drifts the verify link / OTP ids (same URL). Asserting the wrong OTP is a mismatch that won't heal. (Real OTP: temp-mail.org.)</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <div id="mail"></div>
+      <div id="result"></div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  lcaBreak().then(function(v2){
+    var lid=v2?'verify_v2':'verify-link',oid=v2?'otp_v2':'otp',ltxt=v2?'Confirm now':'Verify';
+    document.getElementById('mail').innerHTML='<p>Subject: Verify your account</p><p><a href="#" id="'+lid+'" aria-label="Verify">'+ltxt+'</a></p><p>Code: <span id="'+oid+'">482913</span></p>';
+    document.getElementById(lid).onclick=function(e){e.preventDefault();document.getElementById('result').textContent='✅ verified';};
+  });
+  </script>
+</body>
+</html>

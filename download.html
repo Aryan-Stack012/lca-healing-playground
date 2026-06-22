@@ -1,6 +1,29 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Download - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}code{background:#f3f3f3;padding:1px 5px}</style></head>
-<body><h2>File download</h2>
-<p style="color:#777;font-size:13px">Downloads <code>report.txt</code>. Assert filename "report.txt" (passes) vs a wrong name (validation failure -> not healed).</p>
-<p><a id="dl" href="files/report.txt" download="report.txt">Download report</a></p>
-</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File download · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="download.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Never heals · download</span>
+      <h1>File download</h1>
+      <p class="page__note">Downloads <code>report.txt</code>. Assert the filename "report.txt" (passes) vs a wrong name (validation failure → not healed).</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <p><a id="dl" class="dl-btn" href="files/report.txt" download="report.txt">Download report</a></p>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+</body>
+</html>

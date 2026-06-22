@@ -1,13 +1,38 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Shared data - heal playground</title><style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}button{padding:10px 16px;border-radius:6px;border:1px solid #888;cursor:pointer}.btn-primary,.cta{background:#0b66ff;color:#fff;border-color:#0b66ff}.decoy{background:#eee}.menu{display:inline-block;border:1px solid #ccc;border-radius:6px;padding:8px}#result{margin-top:14px;font-weight:600}code{background:#f3f3f3;padding:1px 5px}.muted{color:#777;font-size:13px}</style></head>
-<body><h2>Producer / Consumer</h2>
-<p class="muted">Producer shows a token to extract; shared flag drifts its id (same URL). Consumer: open <code>?use=HEAL-7421</code>.</p>
-<div id="prod"></div><div id="cons"></div>
-<script src="flag.js"></script>
-<script>
-var p=new URLSearchParams(location.search);
-lcaBreak().then(function(v2){
-  var tid=v2?'token_v2':'token';
-  document.getElementById('prod').innerHTML='<p>Token: <span id="'+tid+'">HEAL-7421</span></p>';
-  if(p.has('use')){var ok=p.get('use')==='HEAL-7421';document.getElementById('cons').innerHTML='<p>'+(ok?'✅ token matches':'❌ token mismatch')+'</p>';}
-});
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared data · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="data.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Producer / consumer</span>
+      <h1>Shared data</h1>
+      <p class="page__note">Producer shows a token to extract; the shared flag drifts its id (same URL). Consumer: open <code>?use=HEAL-7421</code>.</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <div id="prod"></div>
+      <div id="cons"></div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  var p=new URLSearchParams(location.search);
+  lcaBreak().then(function(v2){
+    var tid=v2?'token_v2':'token';
+    document.getElementById('prod').innerHTML='<p>Token: <span id="'+tid+'">HEAL-7421</span></p>';
+    if(p.has('use')){var ok=p.get('use')==='HEAL-7421';document.getElementById('cons').innerHTML='<p>'+(ok?'✅ token matches':'❌ token mismatch')+'</p>';}
+  });
+  </script>
+</body>
+</html>

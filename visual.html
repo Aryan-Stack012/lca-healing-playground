@@ -1,9 +1,33 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Visual - heal playground</title>
-<style>body{font-family:system-ui,Arial;max-width:700px;margin:32px auto;padding:0 16px}#box{width:240px;height:120px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px}</style></head>
-<body><h2>Visual (changes every load)</h2>
-<p style="color:#777;font-size:13px">The box colour and number randomise on each load, so a visual baseline never matches -> visual mismatch is a real failure, never healed.</p>
-<div id="box"></div>
-<script>
-var c=['#e8453c','#0b66ff','#0a0','#a05ad6','#f29d0b'][Math.floor(Math.random()*5)],n=Math.floor(Math.random()*1000),b=document.getElementById('box');
-b.style.background=c;b.textContent=n;
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual diff · LCA Playground</title>
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="visual.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Never heals · visual</span>
+      <h1>Visual diff</h1>
+      <p class="page__note">The box colour and number randomise on each load, so a visual baseline never matches — the mismatch is a real failure, never healed.</p>
+    </header>
+    <section class="stage">
+      <div class="stage__head"><span class="eyebrow">device under test</span><span class="dotrow"><i></i><i></i><i></i></span></div>
+      <div id="box"></div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  var c=['#e8453c','#0b66ff','#0a0','#a05ad6','#f29d0b'][Math.floor(Math.random()*5)],n=Math.floor(Math.random()*1000),b=document.getElementById('box');
+  b.style.background=c;b.textContent=n;
+  </script>
+</body>
+</html>
