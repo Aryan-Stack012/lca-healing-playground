@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Language · Flag Inspector</title>
+<meta name="description" content="Shows the language Chrome was launched with (--lang / intl.accept_languages) and renders localized content across all 11 LCNC presets.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+<link rel="stylesheet" href="assets/inspector.css">
+</head>
+<body data-sub="language deep-dive">
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="brand" href="../index.html" aria-label="Back to the playground hub">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+          <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" fill="none" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand__txt"><span class="brand__name">Self-Healing Playground</span><span class="brand__sub">language deep-dive</span></span>
+      </a>
+      <a class="flagchip" href="index.html" data-state="config" style="text-decoration:none">
+        <span class="flagchip__dot"></span>
+        <span class="flagchip__label">back to</span>
+        <span class="flagchip__state">all flags</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap page">
+
+    <section class="console" aria-labelledby="lH">
+      <div class="console__grid" aria-hidden="true"></div>
+      <div class="console__in">
+        <span class="eyebrow">Browser flag · lang / intl.accept_languages</span>
+        <h1 id="lH">Browser <span class="accent">language</span></h1>
+        <p class="console__lede">
+          The <b>Browser language</b> flag launches Chrome with <code>--lang=&lt;value&gt;</code> and the
+          <code>intl.accept_languages</code> pref. Below is the language this browser actually resolved,
+          plus localized content rendered live — so you can <b>see</b> the site load in the configured language.
+        </p>
+        <div class="hero-locale">
+          <span class="big" id="bigLocale" aria-label="Resolved navigator.language">–</span>
+          <span class="tag" id="bigLangs">navigator.languages</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- localized content samples -->
+    <section class="sect" aria-labelledby="sampH">
+      <div class="sect__head">
+        <h2 id="sampH">Localized content</h2>
+        <span class="count">Intl, rendered in the active locale</span>
+      </div>
+      <div class="surface">
+        <div class="surface__body">
+          <div class="samples">
+            <div class="sample"><p class="sample__k">Full date &amp; time</p><p class="sample__v" id="s-date">–</p></div>
+            <div class="sample"><p class="sample__k">Number (1 234 567.89)</p><p class="sample__v" id="s-num">–</p></div>
+            <div class="sample"><p class="sample__k">Currency (locale default)</p><p class="sample__v" id="s-cur">–</p></div>
+            <div class="sample"><p class="sample__k">Percent (0.8642)</p><p class="sample__v" id="s-pct">–</p></div>
+            <div class="sample"><p class="sample__k">Relative time (−2 days)</p><p class="sample__v" id="s-rel">–</p></div>
+            <div class="sample"><p class="sample__k">List (Chrome, Edge, Firefox)</p><p class="sample__v" id="s-list">–</p></div>
+          </div>
+          <hr class="divider">
+          <div class="env" style="border:0;padding:0">
+            <span class="env__k">Accept-Language header (derived from navigator.languages)</span>
+            <span class="env__v wrap-any" id="s-accept">…</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- all 11 presets -->
+    <section class="sect" aria-labelledby="locH">
+      <div class="sect__head">
+        <h2 id="locH">LCNC language presets</h2>
+        <span class="count">11 options · active row highlighted</span>
+      </div>
+      <div class="surface">
+        <div class="surface__body" style="overflow-x:auto">
+          <table class="locales">
+            <caption class="sr-only">The 11 selectable browser-language presets, each rendered in its own locale</caption>
+            <thead>
+              <tr><th>Code</th><th>Preset</th><th>Greeting</th><th>Date</th><th>Number</th></tr>
+            </thead>
+            <tbody id="localeBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Set the language in Advanced Configurations → Browser flags, then re-run against this URL.</p>
+      <nav class="foot-nav" aria-label="Playground">
+        <a href="index.html">← All flags</a>
+        <a href="diff.html">Launch diff</a>
+        <a href="../index.html">Playground hub</a>
+      </nav>
+    </footer>
+
+  </main>
+
+  <script src="assets/inspector.js"></script>
+</body>
+</html>

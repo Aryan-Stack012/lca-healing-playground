@@ -1,0 +1,256 @@
+/* ============================================================
+   Chrome Flag Inspector — page-specific components.
+   Extends the playground design system (../assets/playground.css):
+   reuses tokens, tri-state semaphore, .surface / .badge / .row / .mono.
+   Verdict → semaphore mapping:
+     active → healthy (mint) · blocked → gone (rose)
+     unknown/heuristic → drift (amber) · inactive → config (steel)
+   ============================================================ */
+
+/* ---------------- console header (poster, not a document) ---------------- */
+.console{
+  position:relative; margin:var(--s6) 0 var(--s6);
+  border:1px solid var(--line); border-radius:var(--r);
+  background:linear-gradient(180deg,var(--panel) 0%, var(--ink-2) 100%);
+  background-image:
+    radial-gradient(120% 140% at 88% -20%, var(--signal-dim), transparent 55%),
+    linear-gradient(180deg,var(--panel) 0%, var(--ink-2) 100%);
+  box-shadow:var(--e2); overflow:hidden;
+}
+.console__grid{
+  position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(var(--hairline-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hairline-grid) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(130% 120% at 70% 0%, #000 55%, transparent 100%);
+}
+.console__in{position:relative; padding:clamp(var(--s5),4vw,var(--s7))}
+.console h1{
+  font-family:var(--font-display); font-weight:700; font-size:var(--fs-700);
+  line-height:1.03; letter-spacing:var(--track-tight); margin:var(--s3) 0 var(--s4); max-width:22ch;
+}
+.console h1 .accent{color:var(--signal)}
+.console__lede{margin:0; max-width:66ch; color:var(--muted); font-size:var(--fs-300); line-height:var(--lh)}
+.console__lede b{color:var(--text); font-weight:500}
+
+/* summary readout: big live counts + primary actions */
+.readout-strip{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--s5);
+  margin-top:var(--s6); padding-top:var(--s5); border-top:1px solid var(--line-soft);
+}
+.metric{display:flex; flex-direction:column; gap:2px; min-width:0}
+.metric__v{
+  font-family:var(--font-mono); font-weight:700; font-variant-numeric:tabular-nums;
+  font-size:clamp(26px,4.4vw,40px); line-height:1; letter-spacing:-.02em; color:var(--text);
+}
+.metric__v .slash{color:var(--faint); font-weight:400; margin:0 .12em}
+.metric__v[data-state]{color:var(--state)}
+.metric__k{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:var(--track-label); text-transform:uppercase; color:var(--faint)}
+.metric__v.small{font-size:clamp(17px,2.4vw,22px)}
+.readout-strip .spacer{flex:1 1 40px}
+.actions{display:flex; gap:var(--s3); flex-wrap:wrap}
+
+/* ---------------- section heads ---------------- */
+.sect{margin:var(--s7) 0}
+.sect__head{display:flex; align-items:baseline; justify-content:space-between; gap:var(--s3); margin:0 0 var(--s4); border-bottom:1px solid var(--line-soft); padding-bottom:var(--s3)}
+.sect__head h2{font-family:var(--font-display); font-weight:600; font-size:var(--fs-400); letter-spacing:var(--track-tight); margin:0}
+.sect__head .count{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--faint); letter-spacing:.04em}
+
+/* ---------------- environment definition grid ---------------- */
+.envgrid{display:grid; grid-template-columns:1fr; gap:0}
+@media (min-width:640px){ .envgrid{grid-template-columns:1fr 1fr} }
+@media (min-width:1000px){ .envgrid{grid-template-columns:1fr 1fr 1fr} }
+.env{display:flex; flex-direction:column; gap:3px; padding:var(--s3) var(--s4); border-bottom:1px solid var(--line-soft); border-right:1px solid var(--line-soft); min-width:0}
+.env__k{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.env__v{font-family:var(--font-mono); font-size:var(--fs-100); color:var(--text); word-break:break-word; font-variant-numeric:tabular-nums}
+.env__v.wrap-any{word-break:break-all}
+
+/* ---------------- probe grid ---------------- */
+.probes{display:grid; grid-template-columns:1fr; gap:var(--s4)}
+@media (min-width:720px){ .probes{grid-template-columns:1fr 1fr} }
+
+.probe{
+  --state:var(--faint); --state-dim:rgba(126,138,164,.14);
+  display:flex; flex-direction:column; gap:var(--s4);
+  border:1px solid var(--line); border-left:3px solid var(--state);
+  border-radius:var(--r); background:var(--panel); box-shadow:var(--e1);
+  padding:var(--s5); transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.probe:hover{box-shadow:var(--e2); transform:translateY(-2px)}
+.probe[data-state="healthy"]{--state:var(--healthy); --state-dim:var(--healthy-dim)}
+.probe[data-state="gone"]{--state:var(--gone); --state-dim:var(--gone-dim)}
+.probe[data-state="drift"]{--state:var(--drift); --state-dim:var(--drift-dim)}
+.probe[data-state="config"]{--state:var(--config); --state-dim:var(--config-dim)}
+
+.probe__head{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s3)}
+.probe__name{font-family:var(--font-display); font-weight:600; font-size:var(--fs-300); margin:0; line-height:var(--lh-tight)}
+.probe__key{display:block; margin-top:3px; font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.04em; color:var(--faint); word-break:break-all}
+.probe__desc{margin:0; color:var(--muted); font-size:var(--fs-100)}
+/* self-describing status line — the single clearest string for the agent to assert on */
+.probe__status{margin:0; font-family:var(--font-mono); font-size:var(--fs-75); font-weight:500; color:var(--state); letter-spacing:.01em}
+
+/* verdict pill (semaphore) */
+.verdict{
+  flex:none; display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-weight:700; font-size:var(--fs-50); letter-spacing:.12em; text-transform:uppercase;
+  padding:6px 11px; border-radius:var(--r-pill);
+  color:var(--state); background:var(--state-dim);
+  border:1px solid color-mix(in srgb, var(--state) 42%, transparent);
+  white-space:nowrap;
+}
+.verdict::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--state); box-shadow:0 0 9px var(--state); flex:none}
+.verdict.is-checking{color:var(--faint); background:transparent; border-color:var(--line)}
+.verdict.is-checking::before{background:var(--faint); box-shadow:none; animation:blink 1s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+.verdict.settle::before{animation:ring .5s var(--ease)}
+@keyframes ring{0%{box-shadow:0 0 0 0 var(--state-dim)}100%{box-shadow:0 0 0 9px transparent}}
+/* config steel misses AA for 11px bold text — lift the text to --faint, keep the dot/border steel */
+.probe[data-state="config"] .verdict{color:var(--faint)}
+.fp[data-state="config"] .fp__v{color:var(--faint)}
+
+/* mapped chrome args / prefs */
+.args{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:5px}
+.args li{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--text); background:var(--ink-2); border:1px solid var(--line-soft); border-radius:6px; padding:5px 9px; word-break:break-all}
+.args li .arg-tag{color:var(--faint); margin-right:6px}
+.args-label{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:0 0 6px}
+
+/* evidence rows (JS-filled) */
+.ev{display:flex; flex-direction:column; gap:0; margin:0; border-top:1px solid var(--line-soft)}
+.ev__row{display:grid; grid-template-columns:minmax(120px,42%) 1fr; gap:var(--s3); padding:7px 0; border-bottom:1px solid var(--line-soft); align-items:baseline}
+.ev__k{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--muted)}
+.ev__v{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--text); word-break:break-word; font-variant-numeric:tabular-nums}
+.ev__v.ok{color:var(--healthy)} .ev__v.no{color:var(--gone)} .ev__v.warn{color:var(--drift)} .ev__v.dim{color:var(--faint)}
+.ev:empty{display:none}
+
+.probe__foot{display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; margin-top:auto}
+.probe__note{margin:0; font-size:var(--fs-75); color:var(--faint); line-height:var(--lh)}
+button.run{font-size:var(--fs-100); padding:9px 15px}
+button.run[disabled]{opacity:.5; cursor:default}
+.conf{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.conf b{color:var(--muted); font-weight:500}
+
+/* ---------------- dark-mode visual swatch (ground truth for WebContentsForceDark) ---------------- */
+.swatch{
+  margin-top:var(--s3); border-radius:var(--r-sm); overflow:hidden; border:1px solid var(--line);
+}
+.swatch__panel{
+  background:#ffffff; color:#0a0a0a; padding:var(--s4) var(--s5);
+  display:flex; align-items:center; justify-content:space-between; gap:var(--s4); flex-wrap:wrap;
+}
+.swatch__panel h4{font-family:var(--font-display); margin:0; font-size:var(--fs-200); color:#0a0a0a}
+.swatch__panel p{margin:2px 0 0; font-size:var(--fs-75); color:#4a4a4a; font-family:var(--font-mono)}
+.swatch__chip{width:26px; height:26px; border-radius:6px; background:#111; border:1px solid #ccc; flex:none}
+.swatch__cap{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.08em; text-transform:uppercase; color:var(--faint); padding:7px var(--s4); background:var(--ink-2)}
+
+/* ---------------- raw snapshot ---------------- */
+.snapshot pre{max-height:420px; overflow:auto}
+.snapshot .surface__head{cursor:default}
+
+/* ---------------- language deep-dive ---------------- */
+.hero-locale{display:flex; align-items:baseline; gap:var(--s3); flex-wrap:wrap; margin:var(--s4) 0 0}
+.hero-locale .big{font-family:var(--font-mono); font-weight:700; font-size:clamp(30px,6vw,56px); line-height:1; letter-spacing:-.02em; color:var(--signal)}
+.hero-locale .tag{font-family:var(--font-mono); font-size:var(--fs-100); color:var(--muted)}
+
+.samples{display:grid; grid-template-columns:1fr; gap:var(--s3)}
+@media (min-width:640px){ .samples{grid-template-columns:1fr 1fr} }
+.sample{border:1px solid var(--line); border-radius:var(--r-sm); background:var(--ink-2); padding:var(--s4)}
+.sample__k{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:0 0 6px}
+.sample__v{font-size:var(--fs-300); color:var(--text)}
+
+.locales{width:100%; border-collapse:collapse; font-size:var(--fs-100)}
+.locales th,.locales td{text-align:left; padding:10px var(--s3); border-bottom:1px solid var(--line-soft); vertical-align:top}
+.locales th{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:500}
+.locales td.code{font-family:var(--font-mono); color:var(--muted); white-space:nowrap}
+.locales td.greet{font-size:var(--fs-200); color:var(--text)}
+.locales td.fmt{font-family:var(--font-mono); color:var(--muted); font-variant-numeric:tabular-nums}
+.locales tr.is-active{background:var(--signal-dim)}
+.locales tr.is-active td{color:var(--text)}
+.locales tr.is-active td.code{color:var(--signal); font-weight:700}
+.active-tag{color:var(--signal); font-weight:500} /* real DOM text, not ::after — agents can assert on it */
+
+/* warn callout (used by the launch-diff "not LCNC-launched" banner) */
+.callout--warn{
+  border:1px solid var(--drift); border-radius:var(--r-sm); background:var(--drift-dim);
+  padding:var(--s3) var(--s4); color:var(--drift); margin:0 0 var(--s5);
+}
+
+/* ---------------- launch-diff page ---------------- */
+/* baseline switcher (segmented) */
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden; background:var(--ink-2)}
+.seg button{border:0; border-radius:0; background:transparent; color:var(--muted); font-family:var(--font-mono); font-size:var(--fs-75); padding:9px 14px}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--signal-dim); color:var(--signal); font-weight:700}
+.seg button[aria-pressed="false"]:hover{color:var(--text)}
+/* overflow:hidden clips the global outward focus ring — draw it inset instead */
+.seg button:focus-visible{outline:2px solid var(--signal); outline-offset:-3px; border-radius:6px}
+
+/* fingerprint checks */
+.fpgrid{display:grid; grid-template-columns:1fr; gap:0}
+@media (min-width:720px){ .fpgrid{grid-template-columns:1fr 1fr} }
+.fp{display:grid; grid-template-columns:auto 1fr; gap:var(--s3); align-items:start; padding:var(--s3) var(--s4); border-bottom:1px solid var(--line-soft); border-right:1px solid var(--line-soft)}
+.fp__dot{width:10px; height:10px; border-radius:50%; margin-top:5px; background:var(--state,var(--faint)); box-shadow:0 0 8px var(--state,transparent); flex:none}
+.fp[data-state]{--state:var(--faint)}
+.fp[data-state="healthy"]{--state:var(--healthy)}
+.fp[data-state="gone"]{--state:var(--gone)}
+.fp[data-state="drift"]{--state:var(--drift)}
+.fp[data-state="config"]{--state:var(--config)}
+.fp__k{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--text)}
+.fp__arg{font-family:var(--font-mono); font-size:var(--fs-50); color:var(--faint); display:block; margin-top:2px; word-break:break-all}
+.fp__v{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--state,var(--muted)); margin-top:3px; display:block}
+.fp button{margin-top:6px; font-size:var(--fs-75); padding:6px 11px}
+
+/* command-line diff */
+.cmdline{
+  font-family:var(--font-mono); font-size:var(--fs-75); line-height:1.6;
+  background:#05080F; /* the hub monitor's .screen terminal shade — deliberate, matches the system */
+  border:1px solid var(--line); border-radius:var(--r);
+  padding:var(--s4) 0; overflow-x:auto; box-shadow:var(--e1);
+}
+.cl-row{display:grid; grid-template-columns:26px minmax(240px,1.2fr) 1fr; gap:var(--s3); padding:2px var(--s4); align-items:baseline}
+.cl-row .g{text-align:center; color:var(--faint); font-weight:700}
+.cl-row .a{color:var(--muted); word-break:break-all}
+.cl-row .n{color:var(--faint); font-size:var(--fs-50); min-width:0}
+@media (max-width:700px){ .cl-row{grid-template-columns:22px 1fr} .cl-row .n{grid-column:2} }
+.cl-row--head .a{color:var(--text); font-weight:700}
+.cl-row--ok  .g{color:var(--healthy)} .cl-row--ok .a{color:var(--text)}
+.cl-row--bad .g{color:var(--gone)}   .cl-row--bad .a{color:var(--gone)}
+.cl-row--var .g,.cl-row--var .a{color:var(--config)}
+.cl-row--add{background:var(--healthy-dim)}
+.cl-row--add .g,.cl-row--add .a{color:var(--healthy); font-weight:700}
+.cl-row--add .n{color:color-mix(in srgb, var(--healthy) 65%, var(--faint))}
+.cl-row--inf{background:var(--drift-dim)}
+.cl-row--inf .g,.cl-row--inf .a{color:var(--drift); font-weight:700}
+.cl-row--pref{background:var(--signal-dim)}
+.cl-row--pref .g,.cl-row--pref .a{color:var(--signal)}
+.cl-row--fold{cursor:pointer; user-select:none}
+.cl-row--fold .a{color:var(--faint); font-style:italic}
+.cl-row--fold:hover .a{color:var(--text)}
+.cmdline--folded .cl-row[data-foldable]{display:none}
+.cl-sep{height:1px; background:var(--line-soft); margin:var(--s3) var(--s4)}
+
+/* diff legend */
+.legend-row{display:flex; gap:var(--s4); flex-wrap:wrap; margin-top:var(--s3)}
+.legend-row .lg{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:var(--fs-50); color:var(--muted)}
+.lg i{width:14px; height:14px; border-radius:4px; display:inline-block; border:1px solid var(--line)}
+.lg--add i{background:var(--healthy-dim); border-color:var(--healthy)}
+.lg--inf i{background:var(--drift-dim); border-color:var(--drift)}
+.lg--pref i{background:var(--signal-dim); border-color:var(--signal)}
+.lg--ok i{background:transparent; border-color:var(--healthy)}
+.lg--base i{background:transparent; border-color:var(--line-strong)}
+
+/* gotchas list */
+.gotchas{margin:0; padding:0; list-style:none; display:flex; flex-direction:column}
+.gotchas li{display:grid; grid-template-columns:auto 1fr; gap:var(--s3); padding:var(--s3) 0; border-bottom:1px solid var(--line-soft); font-size:var(--fs-100); color:var(--muted)}
+.gotchas li:last-child{border-bottom:0}
+.gotchas .gi{font-family:var(--font-mono); font-weight:700; color:var(--drift)}
+.gotchas b{color:var(--text); font-weight:600}
+.gotchas code{font-family:var(--font-mono); font-size:.9em; color:var(--text); background:var(--ink-2); border:1px solid var(--line-soft); border-radius:6px; padding:1px 6px}
+
+/* ---------------- staggered entrance (killed under reduced-motion by global reset) ---------------- */
+.reveal-up{opacity:0; transform:translateY(14px); animation:up .5s var(--ease) forwards}
+@keyframes up{to{opacity:1; transform:none}}
+
+/* footer nav */
+.foot-nav{display:flex; gap:var(--s4); flex-wrap:wrap; align-items:center}
+.foot-nav a{font-family:var(--font-mono); font-size:var(--fs-75)}

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Diff · Flag Inspector</title>
+<meta name="description" content="The default LCNC Chrome command line, verified via its JS-observable fingerprints, with the extra args/prefs from the 8 user browser flags overlaid live.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+<link rel="stylesheet" href="assets/inspector.css">
+</head>
+<body data-sub="launch diff">
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="brand" href="../index.html" aria-label="Back to the playground hub">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+          <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" fill="none" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand__txt"><span class="brand__name">Self-Healing Playground</span><span class="brand__sub">launch diff</span></span>
+      </a>
+      <a class="flagchip" href="index.html" data-state="config" style="text-decoration:none">
+        <span class="flagchip__dot"></span>
+        <span class="flagchip__label">back to</span>
+        <span class="flagchip__state">all flags</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap page">
+
+    <section class="console" aria-labelledby="dH">
+      <div class="console__grid" aria-hidden="true"></div>
+      <div class="console__in">
+        <span class="eyebrow">Command line · defaults vs. additions</span>
+        <h1 id="dH">Launch <span class="accent">diff</span></h1>
+        <p class="console__lede">
+          A page can't read Chrome's command line — so this one does the honest version.
+          It renders the <b>default LCNC launch</b>, <b>verifies</b> every default switch that has a
+          JS-observable effect, and overlays the <b>extra args and prefs</b> the 8 browser flags added,
+          inferred live from this very browser. <b>+</b> lines are the diff.
+        </p>
+
+        <div class="readout-strip">
+          <div class="metric">
+            <span class="metric__v" id="m-fp" data-state="config">–</span>
+            <span class="metric__k">fingerprint match</span>
+          </div>
+          <div class="metric">
+            <span class="metric__v" id="m-add" data-state="config">–</span>
+            <span class="metric__k">detected additions</span>
+          </div>
+          <div class="spacer"></div>
+          <div class="seg" id="blSeg" role="group" aria-label="Baseline">
+            <button data-bl="desktop" aria-pressed="true">Desktop app</button>
+            <button data-bl="cloud" aria-pressed="false">Cloud agentic</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="page__note callout--warn" id="notLcnc" role="status" hidden>
+      Fewer than 2 strong fingerprints match — this browser doesn't look LCNC-launched, so the baseline
+      below describes a different launch than the one you're in. The additions overlay still reflects
+      this browser's real flag state.
+    </p>
+
+    <!-- fingerprints -->
+    <section class="sect" aria-labelledby="fpH">
+      <div class="sect__head">
+        <h2 id="fpH">Baseline fingerprint</h2>
+        <span class="count">JS-observable default switches</span>
+      </div>
+      <div class="surface">
+        <div class="fpgrid" id="fpgrid"></div>
+      </div>
+    </section>
+
+    <!-- the command line -->
+    <section class="sect" aria-labelledby="clH">
+      <div class="sect__head">
+        <h2 id="clH">Command line</h2>
+        <span class="count" id="blSub"></span>
+      </div>
+      <div class="cmdline" id="cmdline" role="group" aria-label="Default Chrome command line with detected additions"></div>
+      <div class="legend-row">
+        <span class="lg lg--add"><i></i>+ detected addition (strong signal)</span>
+        <span class="lg lg--inf"><i></i>± inferred addition (heuristic — verify)</span>
+        <span class="lg lg--pref"><i></i>· pref — no command-line footprint</span>
+        <span class="lg lg--ok"><i></i>✓ baseline switch verified live</span>
+        <span class="lg lg--base"><i></i>~ varies per run &nbsp;·&nbsp; dim = not observable from a page</span>
+      </div>
+    </section>
+
+    <!-- gotchas -->
+    <section class="sect" aria-labelledby="gH">
+      <div class="sect__head">
+        <h2 id="gH">Edge cases &amp; gotchas</h2>
+        <span class="count">found in the launch code + Chrome behavior</span>
+      </div>
+      <div class="surface">
+        <div class="surface__body">
+          <ul class="gotchas">
+            <li><span class="gi">01</span><span><b>Chrome is last-wins for repeated switches.</b> Values are replaced, never merged. LCNC's live agentic path merges all <code>--disable-features</code> into one Set-deduped switch for exactly this reason; a user flag repeating a base switch silently replaces it.</span></li>
+            <li><span class="gi">02</span><span><b>A second <code>--enable-features</code> clobbers Dark mode.</b> <code>BrowserFlagsHandler.addOrOverrideArg</code> replaces valued switches by key, so any other flag emitting <code>--enable-features=X</code> overwrites <code>WebContentsForceDark</code>.</span></li>
+            <li><span class="gi">03</span><span><b>Camera + Auto-select share args.</b> Both expand to <code>--use-fake-ui/-device-for-media-stream</code>; the handler dedupes bare switches so they appear once — the diff above mirrors that.</span></li>
+            <li><span class="gi">04</span><span><b>Fake-ui beats Block-all for camera.</b> <code>--use-fake-ui-for-media-stream</code> auto-accepts before the permission prompt exists, so <code>--deny-permission-prompts</code> has nothing to deny — getUserMedia resolves fake even with Block-all on.</span></li>
+            <li><span class="gi">05</span><span><b>Dedupe never matches the baseline.</b> User flag args are stripped of <code>--</code> while baseline entries keep it, so a conflicting user flag is appended as a duplicate — and last-wins means the user flag wins.</span></li>
+            <li><span class="gi">06</span><span><b><code>en-US</code> is invisible.</b> The default language preset emits <code>--lang=en-US</code>… which is indistinguishable from not setting the flag at all. Test language with a non-default locale.</span></li>
+            <li><span class="gi">07</span><span><b>Chrome normalizes locales.</b> <code>--lang=hi-IN</code> → <code>navigator.language "hi"</code>, <code>es-ES</code> → <code>"es"</code> (not shipped UI locales); <code>en-US/en-GB/zh-CN/ja/ko/ru/ar/fr/es</code> survive verbatim.</span></li>
+            <li><span class="gi">08</span><span><b>Incognito is JS-invisible on Chrome 133+.</b> <code>storage.estimate()</code> now returns usage + 10 GiB in both modes, deliberately. Verify incognito via the run's UI/video. It also flips LCNC's new-tab strategy (<code>useJSScriptForOpeningNewTab</code>).</span></li>
+            <li><span class="gi">09</span><span><b>Clipboard "Enabled" ≙ default.</b> The agentic and desktop launches already set clipboard = 1 in default prefs — only <em>Disabled</em> (pref = 2) is observable.</span></li>
+            <li><span class="gi">10</span><span><b>The WDIO replay path ignores user flags.</b> It force-sets geolocation/camera/mic/notifications = deny and appends <code>--deny-permission-prompts</code> on every run — Location/Clipboard flags simply don't reach it.</span></li>
+            <li><span class="gi">11</span><span><b><code>navigator.webdriver</code> can lie.</b> The group-level <code>disableAutomationControlled</code> suppression flag passes <code>--disable-blink-features=AutomationControlled</code>, making webdriver read <code>false</code> on an automated run.</span></li>
+            <li><span class="gi">12</span><span><b>Shipped typo + legacy switches.</b> <code>--disable-prompt-on-repos</code> (sic) ships next to the correct <code>-repost</code>; <code>--reduce-security-for-testing</code>, <code>--enable-fixed-layout</code> and friends were removed from Chrome years ago — all silently ignored.</span></li>
+            <li><span class="gi">13</span><span><b>Mobile flags aren't consumed.</b> The <code>browserFlags.mobile</code> bucket is not read anywhere on the agentic path (desktop-only today); "mobile" runs are desktop-Chrome <code>mobileEmulation</code>.</span></li>
+            <li><span class="gi">14</span><span><b>Un-prefixed keys can vanish.</b> <code>browser_flags.json</code> stores keys without <code>--</code>; the BS <code>/playwright?caps=</code> endpoint silently drops un-prefixed args on the legacy pwCaps path (the live path re-normalizes).</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- machine snapshot -->
+    <section class="sect snapshot" aria-labelledby="dsH">
+      <div class="sect__head">
+        <h2 id="dsH">Machine-readable snapshot</h2>
+        <span class="count">baseline + fingerprint + additions</span>
+      </div>
+      <div class="surface">
+        <div class="surface__head"><h3 class="surface__title">launch-diff.json</h3><span class="surface__meta">live</span></div>
+        <div class="surface__body">
+          <pre id="diffSnap" aria-label="JSON snapshot of the launch diff">{ }</pre>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>+ lines are what your Advanced Configuration added on top of the defaults.</p>
+      <nav class="foot-nav" aria-label="Playground">
+        <a href="index.html">← All flags</a>
+        <a href="language.html">Language deep-dive</a>
+        <a href="../index.html">Playground hub</a>
+      </nav>
+    </footer>
+
+  </main>
+
+  <script src="assets/inspector.js"></script>
+  <script src="assets/diff.js"></script>
+</body>
+</html>

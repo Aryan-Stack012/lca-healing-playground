@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chrome Flag Inspector · LCA Playground</title>
+<meta name="description" content="Reads the browser it runs in and reports which of the 8 LCNC browser flags actually took effect. An Explore-URL target for verifying an agentic run's Advanced Configuration.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+<link rel="stylesheet" href="assets/inspector.css">
+</head>
+<body data-sub="flag inspector">
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="brand" href="../index.html" aria-label="Back to the playground hub">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+          <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" fill="none" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand__txt"><span class="brand__name">Self-Healing Playground</span><span class="brand__sub">flag inspector</span></span>
+      </a>
+      <span class="flagchip" data-state="config">
+        <span class="flagchip__dot"></span>
+        <span class="flagchip__label">flags</span>
+        <span class="flagchip__state" id="flagCount">…</span>
+      </span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap page">
+
+    <p id="liveSummary" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <!-- ============ console header ============ -->
+    <section class="console" aria-labelledby="cH">
+      <div class="console__grid" aria-hidden="true"></div>
+      <div class="console__in">
+        <span class="eyebrow">Advanced configuration · browser flags</span>
+        <h1 id="cH">Chrome <span class="accent">Flag Inspector</span></h1>
+        <p class="console__lede">
+          This page reads the browser it is running in and reports which of the
+          <b>8 LCNC browser flags</b> actually took effect. Point the Automate-with-AI
+          <b>Explore URL</b> flow at this URL to verify an agentic run's Advanced Configuration
+          end to end — every readout below is live DOM text the agent can assert on.
+        </p>
+
+        <div class="readout-strip">
+          <div class="metric">
+            <span class="metric__v" id="m-active" data-state="config"><span class="num">–</span><span class="slash">/</span>7</span>
+            <span class="metric__k">toggles active</span>
+          </div>
+          <div class="metric">
+            <span class="metric__v small" id="m-lang">–</span>
+            <span class="metric__k">browser language</span>
+          </div>
+          <div class="metric">
+            <span class="metric__v small" id="m-dark">–</span>
+            <span class="metric__k">dark mode</span>
+          </div>
+          <div class="spacer"></div>
+          <div class="actions">
+            <button class="btn-primary" id="runAll">Run all probes</button>
+            <button id="copyReport">Copy report</button>
+            <a class="menu" href="diff.html">Launch diff →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <noscript>
+      <p class="page__note">This inspector needs JavaScript — the agentic Chrome runs it, so the readouts are populated at run time.</p>
+    </noscript>
+
+    <!-- ============ environment ============ -->
+    <section class="sect" aria-labelledby="envH">
+      <div class="sect__head">
+        <h2 id="envH">Environment</h2>
+        <span class="count">what the browser reports</span>
+      </div>
+      <div class="surface">
+        <div class="envgrid" id="envgrid"></div>
+      </div>
+    </section>
+
+    <!-- ============ probes ============ -->
+    <section class="sect" aria-labelledby="probesH">
+      <div class="sect__head">
+        <h2 id="probesH">Flag probes</h2>
+        <span class="count">8 flags · order matches the modal</span>
+      </div>
+
+      <div class="surface" style="margin-bottom:var(--s4)">
+        <div class="surface__body">
+          <p class="page__note">
+            <b>Reading the results — the launch path matters.</b> The <b>live agentic path</b>
+            (<code>preCreateSeleniumSession</code> → <code>BrowserFlagsHandler</code>) applies flag <b>args and
+            prefs</b>, dedupes repeats, and its defaults already allow clipboard (pref&nbsp;=&nbsp;1). The
+            <b>WDIO replay path</b> ignores user flags entirely and force-denies geolocation/camera/mic/notifications.
+            An older <b>pwCaps path</b> appends args only. So the same flag can behave differently per run type —
+            exactly what this page exposes. Confidence per card: <b>strong</b> (definitive JS signal) vs
+            <b>heuristic</b> (inferred — verify by comparing on/off). See the
+            <a href="diff.html">launch diff</a> for the full command-line picture.
+          </p>
+        </div>
+      </div>
+
+      <div class="probes">
+
+        <!-- 1 -->
+        <article class="probe" data-flag="autoselect" data-flag-name="Auto select screen share source" data-state="config" aria-labelledby="h-autoselect">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-autoselect">Auto select screen share source</h3>
+              <code class="probe__key">auto-select-desktop-capture-source</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Auto-selects the entire screen as the desktop-capture source (no picker).</p>
+          <p class="probe__status" data-role="summary">Auto select screen share source — checking…</p>
+          <div>
+            <p class="args-label">Chrome args when enabled</p>
+            <ul class="args">
+              <li>--auto-select-desktop-capture-source=Entire Screen</li>
+              <li>--use-fake-device-for-media-stream</li>
+              <li>--use-fake-ui-for-media-stream</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <button class="run" data-run="screen">Capture screen</button>
+            <span class="conf">signal · <b>heuristic</b></span>
+          </div>
+          <p class="probe__note">Inferred: <code>getDisplayMedia()</code> resolves with no picker and a fake track whose <code>displaySurface</code> is <code>monitor</code>.</p>
+        </article>
+
+        <!-- 2 -->
+        <article class="probe" data-flag="camera" data-flag-name="Camera &amp; microphone access" data-state="config" aria-labelledby="h-camera">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-camera">Camera &amp; microphone access</h3>
+              <code class="probe__key">use-fake-ui-for-media-stream</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Auto-grants camera & mic and injects a synthetic (fake) capture device.</p>
+          <p class="probe__status" data-role="summary">Camera &amp; microphone access — checking…</p>
+          <div>
+            <p class="args-label">Chrome args when enabled</p>
+            <ul class="args">
+              <li>--use-fake-ui-for-media-stream</li>
+              <li>--use-fake-device-for-media-stream</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <button class="run" data-run="media">Request camera + mic</button>
+            <span class="conf">signal · <b>strong</b></span>
+          </div>
+          <p class="probe__note">A track label matching <code>/fake/</code> confirms it. Precedence quirk: fake-ui <b>wins</b> over <code>--deny-permission-prompts</code> — camera resolves fake even with Block-all on.</p>
+        </article>
+
+        <!-- 3 -->
+        <article class="probe" data-flag="location" data-flag-name="Location access" data-state="config" aria-labelledby="h-location">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-location">Location access</h3>
+              <code class="probe__key">profile.default_content_setting_values.geolocation</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Pre-decides the geolocation content setting: <code>1</code> allow · <code>2</code> block.</p>
+          <p class="probe__status" data-role="summary">Location access — checking…</p>
+          <div>
+            <p class="args-label">Chrome prefs when enabled</p>
+            <ul class="args">
+              <li><span class="arg-tag">pref</span>geolocation = 1 (allow)</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <button class="run" data-run="location">Get position</button>
+            <span class="conf">signal · <b>strong</b></span>
+          </div>
+          <p class="probe__note">Pref-only (no arg). Applied on the live agentic + desktop paths; the WDIO replay path force-sets geolocation = 2 and ignores this flag — <em>Blocked</em> there even when enabled.</p>
+        </article>
+
+        <!-- 4 -->
+        <article class="probe" data-flag="clipboard" data-flag-name="Clipboard access" data-state="config" aria-labelledby="h-clipboard">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-clipboard">Clipboard access</h3>
+              <code class="probe__key">profile.default_content_setting_values.clipboard</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Controls whether sites can read the clipboard: <code>1</code> allow · <code>2</code> block.</p>
+          <p class="probe__status" data-role="summary">Clipboard access — checking…</p>
+          <div>
+            <p class="args-label">Chrome prefs when enabled</p>
+            <ul class="args">
+              <li><span class="arg-tag">pref</span>clipboard = 1 (allow)</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <button class="run" data-run="clipboard">Read clipboard</button>
+            <span class="conf">signal · <b>strong</b> (read)</span>
+          </div>
+          <p class="probe__note">Discriminator is <code>clipboard-read</code> — write is auto-allowed regardless. The agentic and desktop defaults already set clipboard = 1, so <em>Enabled</em> is indistinguishable from default; only <em>Disabled</em> (pref = 2) is observable.</p>
+        </article>
+
+        <!-- 5 -->
+        <article class="probe" data-flag="incognito" data-flag-name="Incognito mode" data-state="config" aria-labelledby="h-incognito">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-incognito">Incognito mode</h3>
+              <code class="probe__key">incognito</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Launches the browser in an Incognito window.</p>
+          <p class="probe__status" data-role="summary">Incognito mode — checking…</p>
+          <div>
+            <p class="args-label">Chrome args when enabled</p>
+            <ul class="args">
+              <li>--incognito</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <span class="conf">signal · <b>heuristic</b></span>
+          </div>
+          <p class="probe__note">No <code>isIncognito</code> API — and Chrome 133+ hardcodes the storage quota to usage + 10 GiB in both modes, deliberately killing quota detection. On modern Chrome, verify via the run's UI/video.</p>
+        </article>
+
+        <!-- 6 -->
+        <article class="probe" data-flag="blockall" data-flag-name="Block all permissions" data-state="config" aria-labelledby="h-blockall">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-blockall">Block all permissions</h3>
+              <code class="probe__key">deny-permission-prompts</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Auto-denies every site permission pop-up.</p>
+          <p class="probe__status" data-role="summary">Block all permissions — checking…</p>
+          <div>
+            <p class="args-label">Chrome args + prefs when enabled</p>
+            <ul class="args">
+              <li>--deny-permission-prompts</li>
+              <li><span class="arg-tag">pref</span>geolocation = 2 (block)</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <span class="conf">signal · <b>heuristic (aggregate)</b></span>
+          </div>
+          <p class="probe__note">The WDIO replay path force-adds this arg (reads <em>on</em> even when off); the live agentic path adds it only when set. camera/mic <code>query()</code> may say <em>prompt</em> while requests still auto-deny — and fake-ui beats the deny for camera.</p>
+        </article>
+
+        <!-- 7 -->
+        <article class="probe" data-flag="dark" data-flag-name="Dark mode" data-state="config" aria-labelledby="h-dark">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-dark">Dark mode</h3>
+              <code class="probe__key">enable-features=WebContentsForceDark</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Auto-darkens web contents at paint time (Chrome "Auto Dark Mode").</p>
+          <p class="probe__status" data-role="summary">Dark mode — checking…</p>
+          <div>
+            <p class="args-label">Chrome args when enabled</p>
+            <ul class="args">
+              <li>--enable-features=WebContentsForceDark</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="swatch" role="img" aria-label="Dark mode probe: a panel authored pure white. If the Dark mode flag is active it will render darkened in the screenshot.">
+            <div class="swatch__panel">
+              <div>
+                <h4>Force-dark visual probe</h4>
+                <p>authored #ffffff · should render dark under the flag</p>
+              </div>
+              <span class="swatch__chip" aria-hidden="true"></span>
+            </div>
+            <div class="swatch__cap">ground truth — check this panel in the run screenshot</div>
+          </div>
+          <div class="probe__foot">
+            <span class="conf">signal · <b>canvas readback + swatch</b></span>
+          </div>
+          <p class="probe__note">Two JS signals: Auto Dark flips <code>prefers-color-scheme</code> to dark, and a forced-light <code>Canvas</code>-background probe computes non-white when the darkening filter engages. The white panel stays the pixel ground truth. Gotcha: <code>BrowserFlagsHandler</code> replaces valued switches by key, so another flag emitting <code>--enable-features=X</code> would replace this one.</p>
+        </article>
+
+        <!-- 8 -->
+        <article class="probe" data-flag="language" data-flag-name="Browser language" data-state="config" aria-labelledby="h-language">
+          <div class="probe__head">
+            <div>
+              <h3 class="probe__name" id="h-language">Browser language</h3>
+              <code class="probe__key">lang</code>
+            </div>
+            <span class="verdict is-checking" data-role="verdict">checking…</span>
+          </div>
+          <p class="probe__desc">Sets the browser & site language (11 presets, default <code>en-US</code>).</p>
+          <p class="probe__status" data-role="summary">Browser language — checking…</p>
+          <div>
+            <p class="args-label">Chrome args + prefs when set</p>
+            <ul class="args">
+              <li>--lang=&lt;value&gt;</li>
+              <li><span class="arg-tag">pref</span>intl.accept_languages = &lt;value&gt;</li>
+            </ul>
+          </div>
+          <div class="ev" data-role="ev"></div>
+          <div class="probe__foot">
+            <a class="menu" href="language.html">Open language deep-dive →</a>
+            <span class="conf">signal · <b>strong</b></span>
+          </div>
+          <p class="probe__note"><code>navigator.languages[0]</code> is the reliable check; the Accept-Language header Chrome sends is derived from it.</p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ============ raw snapshot ============ -->
+    <section class="sect snapshot" aria-labelledby="snapH">
+      <div class="sect__head">
+        <h2 id="snapH">Machine-readable snapshot</h2>
+        <span class="count">attach to a bug</span>
+      </div>
+      <div class="surface">
+        <div class="surface__head"><h3 class="surface__title">flags.json</h3><span class="surface__meta">live</span></div>
+        <div class="surface__body">
+          <pre id="snap" aria-label="JSON snapshot of all detected flag states">{ }</pre>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Same URL the whole time — the readout reflects the browser the run launched.</p>
+      <nav class="foot-nav" aria-label="Playground">
+        <a href="../index.html">← Playground hub</a>
+        <a href="language.html">Language deep-dive</a>
+        <a href="diff.html">Launch diff</a>
+      </nav>
+    </footer>
+
+  </main>
+
+  <script src="assets/inspector.js"></script>
+</body>
+</html>

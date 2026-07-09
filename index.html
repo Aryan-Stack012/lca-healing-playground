@@ -27,6 +27,13 @@
   background-size:44px 44px;
 }
 
+/* ---------- browser-config card (flag inspector) ---------- */
+.cfgcard{display:block; text-decoration:none; color:inherit; transition:border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease)}
+.cfgcard:hover{text-decoration:none; border-color:var(--signal); transform:translateY(-2px); box-shadow:var(--e2)}
+.cfgcard__go{margin-top:var(--s3); font-family:var(--font-mono); font-size:var(--fs-75); color:var(--signal)}
+.cfgcard__go .arr{display:inline-block; transition:transform var(--dur) var(--ease)}
+.cfgcard:hover .cfgcard__go .arr{transform:translateX(4px)}
+
 /* ---------- hero ---------- */
 .hero{display:grid; grid-template-columns:1fr; gap:var(--s6); align-items:end; margin:var(--s5) 0 var(--s7)}
 @media (min-width:980px){ .hero{grid-template-columns:minmax(0,1fr) auto} }
@@ -370,6 +377,29 @@ tbody tr:hover{background:var(--ink-2)}
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- browser-flag inspector -->
+  <section class="section reveal" aria-labelledby="cfgH">
+    <div class="section__head">
+      <h2 id="cfgH">Browser configuration</h2>
+      <span class="count">flag inspector</span>
+    </div>
+    <a class="surface cfgcard" href="flags/index.html" data-state="config">
+      <div class="surface__head">
+        <h3 class="surface__title">Chrome Flag Inspector</h3>
+        <span class="badge badge--info">8 flags · 3 pages</span>
+      </div>
+      <div class="surface__body">
+        <p class="page__note" style="margin:0">
+          Reads the launched Chrome and reports which of the 8 Advanced-Configuration browser flags actually
+          took effect — language, dark mode, camera/mic, location, clipboard, screen share, incognito, block-all —
+          plus a <b>launch diff</b> against the default command line and a language deep-dive.
+          An <code>Explore URL</code> target for verifying an agentic run's flags end to end.
+        </p>
+        <div class="cfgcard__go">open inspector <span class="arr">→</span></div>
+      </div>
+    </a>
   </section>
 
   <!-- scenario pages -->
