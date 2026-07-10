@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shared data · LCA Playground</title>
+<title>Producer / consumer · LCA Playground</title>
+<meta name="description" content="A producer step extracts a token; the shared flag drifts the element id it is captured from. A downstream consumer replays the captured value via ?use=.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,8 +39,8 @@
       <div class="surface__head"><h2 class="surface__title">Downstream consumer</h2><span class="badge badge--info">replay</span></div>
       <div class="surface__body stack">
         <p class="meta" style="margin:0">Replay the captured token against this step (<code class="k">?use=HEAL-7421</code>).</p>
-        <p style="margin:0"><a class="dl-btn" href="?use=HEAL-7421">Validate downstream →</a></p>
-        <div id="cons"></div>
+        <p style="margin:0"><a class="dl-btn" id="useLink" href="?use=HEAL-7421">Validate downstream →</a></p>
+        <div id="cons" role="status" aria-live="polite"></div>
       </div>
     </section>
   </main>
@@ -47,10 +48,17 @@
   <script src="assets/page.js"></script>
   <script>
   var p=new URLSearchParams(location.search);
+  // the downstream link must not drop a live ?v=2/?break/?gone override mid-scenario
+  (function(){
+    var keep=new URLSearchParams();
+    ['v','break','gone'].forEach(function(k){ if(p.has(k)) keep.set(k,p.get(k)); });
+    keep.set('use','HEAL-7421');
+    document.getElementById('useLink').setAttribute('href','?'+keep.toString());
+  })();
   lcaBreak().then(function(v2){
     var tid=v2?'token_v2':'token';
     document.getElementById('prod').innerHTML='<p>Token: <span id="'+tid+'">HEAL-7421</span></p>';
-    if(p.has('use')){var ok=p.get('use')==='HEAL-7421';document.getElementById('cons').innerHTML='<p>'+(ok?'✅ token matches':'❌ token mismatch')+'</p>';}
+    if(p.has('use')){var ok=p.get('use')==='HEAL-7421';document.getElementById('cons').innerHTML='<p class="'+(ok?'is-ok':'is-bad')+'">'+(ok?'✅ token matches':'❌ token mismatch')+'</p>';}
   });
   </script>
 </body>

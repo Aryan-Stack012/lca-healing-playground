@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File upload · LCA Playground</title>
+<meta name="description" content="Native file input → OS dialog. Upload report.txt and assert the echoed name; cancelling the dialog must not burn heal budget.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+/* native input stays native — the OS dialog is the thing under test */
+.upl{display:flex; flex-direction:column; gap:var(--s3)}
+.upl input[type=file]{font-family:var(--font-body); font-size:var(--fs-100); color:var(--muted); max-width:100%}
+.upl input[type=file]::file-selector-button{
+  font-family:var(--font-body); font-size:var(--fs-200); font-weight:600; cursor:pointer;
+  background:var(--signal); color:var(--on-signal); border:1px solid var(--signal);
+  border-radius:var(--r-sm); padding:11px 18px; margin-right:var(--s3);
+  transition:background-color var(--dur) var(--ease);
+}
+.upl input[type=file]::file-selector-button:hover{background:var(--signal-hi)}
+.upl input[type=file]:focus-visible{outline:2px solid var(--signal); outline-offset:3px; border-radius:6px}
+</style>
+</head>
+<body data-sub="upload.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">App &amp; config · OS file dialog</span>
+      <h1>Upload artifact</h1>
+      <p class="page__note">Exercises the native OS file dialog (S19). Grab <code>report.txt</code> from the <a href="download.html">download page</a>, upload it here, and assert the echoed name. Cancelling the dialog is an <b>Aborted</b> step — it must not burn heal budget.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Attach run report</h2><span class="badge badge--info">expects report.txt</span></div>
+      <div class="surface__body stack">
+        <div class="upl">
+          <label class="meta" for="file">Report file (plain text)</label>
+          <input type="file" id="file" accept=".txt,text/plain">
+        </div>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Selected file</span><span class="row__v" id="fname">(none)</span></div>
+          <div class="row"><span class="row__k">Size</span><span class="row__v" id="fsize">—</span></div>
+          <div class="row"><span class="row__k">Expected name</span><span class="row__v">report.txt</span></div>
+        </div>
+        <div id="result" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  var input=document.getElementById('file');
+  input.addEventListener('change',function(){
+    var f=input.files&&input.files[0];
+    var r=document.getElementById('result');
+    if(!f){
+      document.getElementById('fname').textContent='(none)';
+      document.getElementById('fsize').textContent='—';
+      r.textContent=''; r.className='';
+      return;
+    }
+    document.getElementById('fname').textContent=f.name;
+    document.getElementById('fsize').textContent=f.size+' bytes';
+    var ok=f.name==='report.txt';
+    r.textContent=ok?'✅ report.txt uploaded':'❌ Unexpected file: '+f.name+' (expected report.txt)';
+    r.className=ok?'is-ok':'is-bad';
+  });
+  </script>
+</body>
+</html>

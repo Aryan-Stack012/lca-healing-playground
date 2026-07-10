@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>iFrame + Shadow DOM · LCA Playground</title>
+<meta name="description" content="The same Checkout action behind an iframe and a shadow root — the heal must re-find it across both encapsulation boundaries.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,13 +52,13 @@
     frame.addEventListener('load',function(){
       var doc=frame.contentDocument; if(!doc) return;
       var b=doc.getElementById(fid);
-      if(b) b.addEventListener('click',function(){ var r=doc.getElementById('fr'); if(r) r.textContent='✓ Paid'; });
+      if(b) b.addEventListener('click',function(){ var r=doc.getElementById('fr'); if(r) r.textContent='✅ Paid'; });
     });
-    frame.srcdoc='<!doctype html><body style="margin:0;display:flex;align-items:center;gap:12px;padding:16px;font-family:system-ui,sans-serif;background:#0C111E;color:#3FE0A6"><button id="'+fid+'" aria-label="Checkout" style="font:600 15px system-ui;background:#5BC8FF;color:#04202C;border:0;border-radius:10px;padding:11px 18px;cursor:pointer">'+label+'</button><span id="fr" style="font:600 13px ui-monospace,monospace"></span></body>';
+    frame.srcdoc='<!doctype html><html lang="en"><body style="margin:0;display:flex;align-items:center;gap:12px;padding:16px;font-family:system-ui,sans-serif;background:#0C111E;color:#3FE0A6"><button id="'+fid+'" aria-label="Checkout" style="font:600 15px system-ui;background:#5BC8FF;color:#04202C;border:0;border-radius:10px;padding:11px 18px;cursor:pointer">'+label+'</button><span id="fr" role="status" aria-live="polite" style="font:600 13px ui-monospace,monospace"></span></body></html>';
 
     var sh=document.getElementById('host').attachShadow({mode:'open'});
-    sh.innerHTML='<style>button{font:600 15px system-ui;background:#5BC8FF;color:#04202C;border:0;border-radius:10px;padding:11px 18px;cursor:pointer}</style><button id="'+sid+'" aria-label="Checkout">'+label+'</button>';
-    sh.querySelector('button').addEventListener('click',function(){document.getElementById('sresult').textContent='shadow clicked';});
+    sh.innerHTML='<style>button{font:600 15px system-ui;background:#5BC8FF;color:#04202C;border:0;border-radius:10px;padding:11px 18px;cursor:pointer}button:focus-visible{outline:2px solid #04202C;outline-offset:2px}</style><button id="'+sid+'" aria-label="Checkout">'+label+'</button>';
+    sh.querySelector('button').addEventListener('click',function(){var r=document.getElementById('sresult');r.textContent='✅ Paid (shadow root)';r.className='is-ok';});
   });
   </script>
 </body>

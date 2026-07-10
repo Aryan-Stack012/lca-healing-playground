@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Verification inbox · LCA Playground</title>
+<meta name="description" content="The shared flag drifts the verify-link and OTP element ids so a heal must re-derive them; asserting the wrong OTP is a mismatch that won't heal.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +25,7 @@
       <div class="surface__body">
         <div class="mailhead">
           <span class="avatar">B</span>
-          <span style="flex:1"><div class="mailhead__from">BrowserStack Account</div><div class="mailhead__addr">no-reply@browserstack-demo.com</div></span>
+          <div style="flex:1"><div class="mailhead__from">BrowserStack Account</div><div class="mailhead__addr">no-reply@browserstack-demo.com</div></div>
           <span class="meta">just now</span>
         </div>
         <div class="mailbody" id="mail"></div>
@@ -36,9 +37,11 @@
   <script src="assets/page.js"></script>
   <script>
   lcaBreak().then(function(v2){
+    // aria-label stays "Verify" while the drifted text reads "Confirm now" ON PURPOSE:
+    // the stable accessible name is the signal the heal re-derives the locator from.
     var lid=v2?'verify_v2':'verify-link',oid=v2?'otp_v2':'otp',ltxt=v2?'Confirm now':'Verify';
     document.getElementById('mail').innerHTML='<p>Subject: Verify your account</p><p><a href="#" id="'+lid+'" aria-label="Verify">'+ltxt+'</a></p><p>Code: <span id="'+oid+'">482913</span></p>';
-    document.getElementById(lid).onclick=function(e){e.preventDefault();document.getElementById('result').textContent='✅ verified';};
+    document.getElementById(lid).onclick=function(e){e.preventDefault();var r=document.getElementById('result');r.textContent='✅ Verified';r.className='is-ok';};
   });
   </script>
 </body>

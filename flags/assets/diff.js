@@ -541,6 +541,12 @@
         Array.prototype.forEach.call(document.querySelectorAll("#blSeg button"), function (b) {
           b.setAttribute("aria-pressed", b === btn ? "true" : "false");
         });
+        // keep the choice deep-linkable — a copied URL reopens on the same baseline
+        try {
+          var u = new URL(location.href);
+          u.searchParams.set("baseline", activeBaseline);
+          history.replaceState(null, "", u);
+        } catch (e) { }
         renderBaseline();
       });
     });
@@ -560,7 +566,9 @@
         cell.setAttribute("data-state", r.pass === true ? "healthy" : "drift");
         var v = cell.querySelector(".fp__v"); if (v) v.textContent = r.detail;
       }
-      if (flipped) renderBaseline(); // refresh the --load-extension row's ✓ annotation too
+      // refresh the --load-extension row's ✓ annotation too — but never yank keyboard
+      // focus: rebuilding #cmdline while the user is on the fold row would drop it to <body>
+      if (flipped && !byId("cmdline").contains(document.activeElement)) renderBaseline();
       if (r.pass === true || scans >= 4) { clearInterval(t); updateSnap(); }
     }, 2000);
 

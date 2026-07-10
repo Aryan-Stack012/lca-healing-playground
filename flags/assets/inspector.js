@@ -71,15 +71,21 @@
     }
     updateSummary();
   }
-  function ev(el, k, val, cls) {
+  function ev(el, k, val, cls, group) {
     if (!el) return null;
     var list = el.querySelector("[data-role=ev]");
     if (!list) return null;
     var row = document.createElement("div"); row.className = "ev__row";
+    if (group) row.setAttribute("data-g", group);
     var kEl = document.createElement("span"); kEl.className = "ev__k"; kEl.textContent = k;
     var vEl = document.createElement("span"); vEl.className = "ev__v" + (cls ? " " + cls : ""); vEl.textContent = val;
     row.appendChild(kEl); row.appendChild(vEl); list.appendChild(row);
     return vEl;
+  }
+  // A re-run replaces its own earlier evidence instead of stacking duplicates.
+  function clearEv(el, group) {
+    if (!el) return;
+    Array.prototype.forEach.call(el.querySelectorAll('[data-role=ev] [data-g="' + group + '"]'), function (r) { r.remove(); });
   }
   async function safePermission(name) {
     try { var s = await navigator.permissions.query({ name: name }); return s.state; }
@@ -318,18 +324,19 @@
   async function probeMedia() {
     var cam = probe("camera");
     var btn = cam && cam.querySelector("[data-run]"); if (btn) btn.disabled = true;
+    clearEv(cam, "media");
     try {
       var stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       var tracks = stream.getTracks();
       var labels = tracks.map(function (t) { return t.kind + ":" + (t.label || "(no label)"); });
       var fake = tracks.some(function (t) { return /fake|dummy/i.test(t.label); });
-      ev(cam, "getUserMedia", "resolved · " + tracks.length + " tracks", "ok");
-      ev(cam, "track labels", labels.join(" · "), fake ? "ok" : "");
+      ev(cam, "getUserMedia", "resolved · " + tracks.length + " tracks", "ok", "media");
+      ev(cam, "track labels", labels.join(" · "), fake ? "ok" : "", "media");
       setState(cam, "healthy", fake ? "Fake device" : "Granted", "camera");
       REPORT.applied.camera = true; REPORT.camera_fake = fake;
       tracks.forEach(function (t) { t.stop(); });
     } catch (e) {
-      ev(cam, "getUserMedia(video+audio)", e.name + ": " + e.message, "no");
+      ev(cam, "getUserMedia(video+audio)", e.name + ": " + e.message, "no", "media");
       if (e.name === "NotAllowedError") { setState(cam, "gone", "Blocked", "camera"); REPORT.applied.camera = false; }
       else if (e.name === "NotFoundError") {
         // No combined device — on a VM this often means no real camera AND no fake device
@@ -341,28 +348,33 @@
   }
 
   async function probeMediaSplit(cam) {
-    var got = 0;
+    var got = { video: false, audio: false };
     for (var i = 0; i < 2; i++) {
       var kind = i === 0 ? "video" : "audio";
       try {
         var c = {}; c[kind] = true;
         var s = await navigator.mediaDevices.getUserMedia(c);
         var t = s.getTracks()[0];
-        ev(cam, "getUserMedia(" + kind + ")", "resolved · " + (t && t.label || "(no label)"), "ok");
+        ev(cam, "getUserMedia(" + kind + ")", "resolved · " + (t && t.label || "(no label)"), "ok", "media");
         if (t && /fake|dummy/i.test(t.label)) { REPORT.camera_fake = true; }
         s.getTracks().forEach(function (x) { x.stop(); });
-        got++;
+        got[kind] = true;
       } catch (e2) {
-        ev(cam, "getUserMedia(" + kind + ")", e2.name, e2.name === "NotAllowedError" ? "no" : "warn");
+        ev(cam, "getUserMedia(" + kind + ")", e2.name, e2.name === "NotAllowedError" ? "no" : "warn", "media");
       }
     }
-    if (got > 0) { setState(cam, "healthy", REPORT.camera_fake ? "Fake device" : "Partial", "camera"); REPORT.applied.camera = true; }
+    // audio-only success is NOT proof the flag applied: a missing video device with no fake
+    // substitute means --use-fake-device-for-media-stream is absent. Only claim it on fake tracks.
+    if (REPORT.camera_fake) { setState(cam, "healthy", "Fake device", "camera"); REPORT.applied.camera = true; }
+    else if (got.video && got.audio) { setState(cam, "healthy", "Granted (real devices)", "camera"); REPORT.applied.camera = true; }
+    else if (got.video || got.audio) { setState(cam, "drift", "Partial — no fake device", "camera"); REPORT.applied.camera = null; }
     else { setState(cam, "drift", "No device", "camera"); REPORT.applied.camera = null; }
   }
 
   async function probeScreen() {
     var el = probe("autoselect");
     var btn = el && el.querySelector("[data-run]"); if (btn) btn.disabled = true;
+    clearEv(el, "screen");
     try {
       var t0 = performance.now();
       var stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -370,15 +382,15 @@
       var tracks = stream.getTracks();
       var label = (tracks[0] && tracks[0].label) || "(no label)";
       var settings = (tracks[0] && tracks[0].getSettings) ? tracks[0].getSettings() : {};
-      ev(el, "getDisplayMedia", "resolved in " + dt + "ms", "ok");
-      ev(el, "source label", label, /screen|entire|monitor|fake/i.test(label) ? "ok" : "");
-      ev(el, "displaySurface", settings.displaySurface || "—", settings.displaySurface === "monitor" ? "ok" : "");
+      ev(el, "getDisplayMedia", "resolved in " + dt + "ms", "ok", "screen");
+      ev(el, "source label", label, /screen|entire|monitor|fake/i.test(label) ? "ok" : "", "screen");
+      ev(el, "displaySurface", settings.displaySurface || "—", settings.displaySurface === "monitor" ? "ok" : "", "screen");
       var auto = dt < 1200; // auto-select resolves instantly with no picker
       setState(el, auto ? "healthy" : "drift", auto ? "Auto-selected" : "Resolved (picker?)", "autoselect");
       REPORT.applied.autoselect = auto ? true : null;
       tracks.forEach(function (x) { x.stop(); });
     } catch (e) {
-      ev(el, "getDisplayMedia", e.name + ": " + e.message, "no");
+      ev(el, "getDisplayMedia", e.name + ": " + e.message, "no", "screen");
       setState(el, e.name === "NotAllowedError" ? "gone" : "drift",
         e.name === "NotAllowedError" ? "Denied/cancelled" : e.name, "autoselect");
       REPORT.applied.autoselect = e.name === "NotAllowedError" ? false : null;
@@ -388,19 +400,21 @@
   async function probeLocation() {
     var el = probe("location");
     var btn = el && el.querySelector("[data-run]"); if (btn) btn.disabled = true;
+    clearEv(el, "location");
     if (!navigator.geolocation) {
-      ev(el, "geolocation API", "unsupported", "no");
-      if (btn) btn.disabled = false; return;
+      ev(el, "geolocation API", "unsupported", "no", "location");
+      setState(el, "drift", "Unsupported", "location"); REPORT.applied.location = null;
+      if (btn) btn.disabled = false; updateSnap(); return;
     }
     await new Promise(function (res) {
       navigator.geolocation.getCurrentPosition(
         function (p) {
-          ev(el, "getCurrentPosition", "resolved", "ok");
-          ev(el, "coords", p.coords.latitude.toFixed(3) + ", " + p.coords.longitude.toFixed(3), "ok");
+          ev(el, "getCurrentPosition", "resolved", "ok", "location");
+          ev(el, "coords", p.coords.latitude.toFixed(3) + ", " + p.coords.longitude.toFixed(3), "ok", "location");
           setState(el, "healthy", "Allowed", "location"); REPORT.applied.location = true; res();
         },
         function (e) {
-          ev(el, "getCurrentPosition", "error " + e.code + ": " + e.message, e.code === 1 ? "no" : "warn");
+          ev(el, "getCurrentPosition", "error " + e.code + ": " + e.message, e.code === 1 ? "no" : "warn", "location");
           if (e.code === 1) { setState(el, "gone", "Blocked", "location"); REPORT.applied.location = false; }
           else setState(el, "drift", "Error", "location"); // POSITION_UNAVAILABLE etc: permission OK, no fix
           res();
@@ -414,53 +428,36 @@
   async function probeClipboard() {
     var el = probe("clipboard");
     var btn = el && el.querySelector("[data-run]"); if (btn) btn.disabled = true;
-    var token = "lcnc-probe-" + new Date().getTime();
+    clearEv(el, "clipboard");
 
-    // clipboard-read is the discriminator, so the probe is read-first — and it only writes the
-    // token when the original content was captured and can be restored (never destructive).
+    // clipboard-READ is the discriminator (write is auto-allowed regardless of the pref), so a
+    // successful read already proves pref = allow. The probe never writes: a write/restore
+    // round-trip would destroy non-text clipboard content (images, files) with no way back.
     if (!navigator.clipboard || !navigator.clipboard.readText) {
-      ev(el, "navigator.clipboard", "unavailable (insecure context?)", "dim");
+      ev(el, "navigator.clipboard", "unavailable (insecure context?)", "dim", "clipboard");
       setState(el, "drift", "Unavailable", "clipboard"); REPORT.applied.clipboard = null;
       if (btn) btn.disabled = false; updateSnap(); return;
     }
 
-    var original = null;
     try {
-      original = await navigator.clipboard.readText();
-      ev(el, "clipboard.readText", "ok (" + String(original).length + " chars)", "ok");
+      var text = await navigator.clipboard.readText();
+      ev(el, "clipboard.readText", "ok (" + String(text).length + " chars)", "ok", "clipboard");
+      setState(el, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = true;
     } catch (e) {
       // Chrome throws NotAllowedError both for permission denial AND for an unfocused document —
       // only the former means the pref blocked us.
       if (e.name === "NotAllowedError" && !document.hasFocus()) {
-        ev(el, "clipboard.readText", "NotAllowedError (document not focused)", "warn");
+        ev(el, "clipboard.readText", "NotAllowedError (document not focused)", "warn", "clipboard");
         setState(el, "drift", "No focus — rerun", "clipboard"); REPORT.applied.clipboard = null;
       } else if (e.name === "NotAllowedError") {
-        ev(el, "clipboard.readText", e.name + ": " + e.message, "no");
+        ev(el, "clipboard.readText", e.name + ": " + e.message, "no", "clipboard");
         setState(el, "gone", "Blocked", "clipboard"); REPORT.applied.clipboard = false;
       } else {
-        ev(el, "clipboard.readText", e.name + ": " + e.message, "warn");
+        ev(el, "clipboard.readText", e.name + ": " + e.message, "warn", "clipboard");
         setState(el, "drift", e.name, "clipboard"); REPORT.applied.clipboard = null;
       }
-      if (btn) btn.disabled = false; updateSnap(); return;
     }
-
-    // read succeeded → permission is granted; round-trip a token to prove write+read, then restore.
-    try {
-      if (navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(token);
-        ev(el, "clipboard.writeText", "ok", "ok");
-        var back = await navigator.clipboard.readText();
-        ev(el, "round-trip", back === token ? "ok" : "read back: " + String(back).slice(0, 24), back === token ? "ok" : "warn");
-      }
-      setState(el, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = true;
-    } catch (e2) {
-      // read worked, write didn't — still proves the read pref is allow
-      ev(el, "clipboard.writeText", e2.name + ": " + e2.message, "warn");
-      setState(el, "healthy", "Read allowed", "clipboard"); REPORT.applied.clipboard = true;
-    } finally {
-      try { await navigator.clipboard.writeText(original); } catch (e3) { }
-      if (btn) btn.disabled = false; updateSnap();
-    }
+    if (btn) btn.disabled = false; updateSnap();
   }
 
   // A probe can legitimately hang on a human browser (permission prompt left unanswered) —
@@ -471,6 +468,9 @@
 
   async function runAll() {
     var b = byId("runAll"); if (b) { b.disabled = true; b.textContent = "Running…"; }
+    // getDisplayMedia needs transient user activation — run it FIRST, while the
+    // Run-all click is still fresh; the other probes don't need a gesture.
+    await withTimeout(probeScreen(), 12000);
     await withTimeout(probeMedia(), 20000);
     await withTimeout(probeLocation(), 8000);
     await withTimeout(probeClipboard(), 8000);
@@ -484,6 +484,7 @@
   // Run-all button / agent click). ?noauto=1 disables. getDisplayMedia needs a gesture — never auto-run.
   async function autoRun() {
     if (PARAMS.has("noauto")) return;
+    if (!document.querySelector(".probe")) return; // engine-only pages (language/diff) never auto-probe
     var p = REPORT.permissions || {};
     var decided = function (s) { return s === "granted" || s === "denied"; };
     if (decided(p.camera) && decided(p.microphone)) await probeMedia();
@@ -505,9 +506,15 @@
     if (REPORT.language) setText("m-lang", REPORT.language.primary || "—");
     setText("m-dark", REPORT.applied.dark === true ? "on"
       : (REPORT.dark && REPORT.dark.prefersColorScheme === "dark") ? "media dark — check" : "check swatch");
-    // single polite live region — per-card verdicts are visual only, avoiding an announcement burst
-    setText("liveSummary", active + " of 7 boolean flags detected active. Browser language " + ((REPORT.language && REPORT.language.primary) || "unknown") + ".");
+    // single polite live region, debounced — init fires setState a dozen times in a burst,
+    // and a screen reader should hear one settled summary, not twelve intermediate ones
+    announceSummary(active + " of 7 boolean flags detected active. Browser language " + ((REPORT.language && REPORT.language.primary) || "unknown") + ".");
     updateSnap();
+  }
+  var announceTimer = null;
+  function announceSummary(msg) {
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(function () { setText("liveSummary", msg); }, 600);
   }
 
   function buildSnapshot() {
@@ -574,7 +581,10 @@
     setText("bigLocale", loc || "—");
     setText("bigLangs", "[" + (navigator.languages || []).join(", ") + "]");
 
-    var cur = CURRENCY[loc] || CURRENCY[loc.split("-")[0]] || "USD";
+    // Chrome can normalize a preset locale (--lang=hi-IN -> "hi"); resolve currency through
+    // the preset match so a correctly-configured run never falls back to USD.
+    var preset = matchPreset(loc);
+    var cur = CURRENCY[loc] || CURRENCY[loc.split("-")[0]] || (preset && CURRENCY[preset.preset.value]) || "USD";
     setText("s-date", safe(function () { return new Intl.DateTimeFormat(loc, { dateStyle: "full", timeStyle: "medium" }).format(now); }) || "—");
     setText("s-num", safe(function () { return new Intl.NumberFormat(loc).format(1234567.89); }) || "—");
     setText("s-cur", safe(function () { return new Intl.NumberFormat(loc, { style: "currency", currency: cur }).format(1299.5); }) || "—");
@@ -622,7 +632,7 @@
     // Auto-select screen share has no passive signal — resolve it only when captured.
     var as = probe("autoselect");
     setState(as, "drift", "Run probe", "autoselect");
-    ev(as, "status", "not yet captured — click Capture screen", "dim");
+    ev(as, "status", "not yet captured — click Capture screen or Run all probes", "dim", "screen");
     wireButtons();
     if (byId("localeBody")) renderLanguagePage();
     stagger();

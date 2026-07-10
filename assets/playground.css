@@ -285,6 +285,7 @@ pre{
 .searchbar{display:flex; gap:var(--s2)}
 .searchbar input{flex:1; min-width:0; font-family:var(--font-body); font-size:var(--fs-200); color:var(--text); background:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:10px 12px}
 .field input:disabled, .searchbar input:disabled{opacity:1; color:var(--muted); -webkit-text-fill-color:var(--muted)}
+.field input:focus-visible, .searchbar input:focus-visible{outline:2px solid var(--signal); outline-offset:2px}
 
 /* stepper */
 .stepper{display:flex; align-items:center; gap:var(--s2); margin-bottom:var(--s5); flex-wrap:wrap}
@@ -334,6 +335,10 @@ pre{
 
 /* result / status output reads as a chip once populated */
 #result:not(:empty), #sresult:not(:empty){display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-sm); background:var(--ink-2); border:1px solid var(--line-soft); font-family:var(--font-mono); font-weight:600; font-size:var(--fs-100)}
+/* shared outcome states for result chips — one voice across every target page
+   (id selectors included so they out-specify the #result/#sresult base color) */
+.is-ok, #result.is-ok, #sresult.is-ok{color:var(--healthy)}
+.is-bad, #result.is-bad, #sresult.is-bad{color:var(--gone)}
 
 /* guided-flow step buttons + inline notes */
 .flowline{font-size:var(--fs-75); color:var(--faint); margin:0 0 var(--s2)}

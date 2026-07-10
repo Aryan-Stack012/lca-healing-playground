@@ -105,8 +105,9 @@
 @keyframes blink{50%{opacity:.25}}
 .verdict.settle::before{animation:ring .5s var(--ease)}
 @keyframes ring{0%{box-shadow:0 0 0 0 var(--state-dim)}100%{box-shadow:0 0 0 9px transparent}}
-/* config steel misses AA for 11px bold text — lift the text to --faint, keep the dot/border steel */
+/* config steel misses AA for small text — lift the text to --faint, keep the dot/border steel */
 .probe[data-state="config"] .verdict{color:var(--faint)}
+.probe[data-state="config"] .probe__status{color:var(--faint)}
 .fp[data-state="config"] .fp__v{color:var(--faint)}
 
 /* mapped chrome args / prefs */
@@ -215,7 +216,7 @@ button.run[disabled]{opacity:.5; cursor:default}
 .cl-row--head .a{color:var(--text); font-weight:700}
 .cl-row--ok  .g{color:var(--healthy)} .cl-row--ok .a{color:var(--text)}
 .cl-row--bad .g{color:var(--gone)}   .cl-row--bad .a{color:var(--gone)}
-.cl-row--var .g,.cl-row--var .a{color:var(--config)}
+.cl-row--var .g{color:var(--config)} .cl-row--var .a{color:var(--faint)} /* steel misses AA on the terminal shade */
 .cl-row--add{background:var(--healthy-dim)}
 .cl-row--add .g,.cl-row--add .a{color:var(--healthy); font-weight:700}
 .cl-row--add .n{color:color-mix(in srgb, var(--healthy) 65%, var(--faint))}

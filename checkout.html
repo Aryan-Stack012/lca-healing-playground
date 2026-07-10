@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkout · LCA Playground</title>
+<meta name="description" content="Primary heal target: the shared flag relocates the Checkout action into an overflow menu beside a decoy, or removes it entirely.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +17,7 @@
     <header class="page__head">
       <span class="eyebrow">Primary heal target</span>
       <h1>Checkout</h1>
-      <p class="page__note">Break driven by the shared flag (same URL). Toggle via the <b>toggle-heal</b> Action or <code>./toggle.sh</code>: <code>on</code> relocates the action into an overflow menu beside a decoy (healable), <code>off</code> is healthy, <code>gone</code> removes the action (unhealable).</p>
+      <p class="page__note">Break driven by the shared flag (same URL). Toggle via the <b>toggle-heal</b> Action or <code>./toggle.sh</code>: <code>on</code> relocates the action into an overflow menu beside a decoy (healable), <code>off</code> is healthy, <code>gone</code> removes the action (unhealable). Per-tab overrides: <code>?v=2</code> · <code>?gone=1</code>.</p>
     </header>
 
     <div class="cols cols--aside">
@@ -27,9 +28,9 @@
         </div>
         <div class="surface__body">
           <div class="items">
-            <div class="item"><span class="thumb">AH</span><span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></span><span class="item__price">$79.00</span></div>
-            <div class="item"><span class="thumb">UC</span><span><div class="item__name">USB-C Braided Cable</div><div class="item__meta">2 m · Qty 1</div></span><span class="item__price">$12.00</span></div>
-            <div class="item"><span class="thumb">CP</span><span><div class="item__name">Coverage Plan</div><div class="item__meta">1 year · Qty 1</div></span><span class="item__price">$9.00</span></div>
+            <div class="item"><span class="thumb">AH</span><div><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></div><span class="item__price">$79.00</span></div>
+            <div class="item"><span class="thumb">UC</span><div><div class="item__name">USB-C Braided Cable</div><div class="item__meta">2 m · Qty 1</div></div><span class="item__price">$12.00</span></div>
+            <div class="item"><span class="thumb">CP</span><div><div class="item__name">Coverage Plan</div><div class="item__meta">1 year · Qty 1</div></div><span class="item__price">$9.00</span></div>
           </div>
           <hr class="divider">
           <div class="rows">
@@ -53,7 +54,7 @@
         <div class="surface__foot">
           <span class="meta">Placing the order confirms the demo terms.</span>
           <div id="zone">loading…</div>
-          <div id="result"></div>
+          <div id="result" role="status" aria-live="polite"></div>
         </div>
       </aside>
     </div>
@@ -61,7 +62,7 @@
   <script src="flag.js"></script>
   <script src="assets/page.js"></script>
   <script>
-  document.getElementById('zone').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var ok=b.id==='checkout'||b.id==='pay_v2'||b.getAttribute('aria-label')==='Checkout';var r=document.getElementById('result');r.textContent=ok?'✅ Order placed':'❌ Wrong element clicked (decoy)';r.style.color=ok?'#3FE0A6':'#FF7E8C';});
+  document.getElementById('zone').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var ok=b.id==='checkout'||b.id==='pay_v2'||b.getAttribute('aria-label')==='Checkout';var r=document.getElementById('result');r.textContent=ok?'✅ Order placed':'❌ Wrong element clicked (decoy)';r.className=ok?'is-ok':'is-bad';});
   lcaState().then(function(s){
     var z=document.getElementById('zone');
     if(s==='gone'){ z.innerHTML='<p>(no checkout button — unhealable)</p>'; return; }

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Multi-step flow · LCA Playground</title>
+<meta name="description" content="Search → Add to cart → Checkout. The shared flag drifts the middle step, forcing a replay to the first failing step.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +21,7 @@
     </header>
 
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Express purchase</h2><span class="badge badge--info" id="stepBadge">step 1 of 3</span></div>
+      <div class="surface__head"><h2 class="surface__title">Express purchase</h2><span class="badge badge--info" id="stepBadge" role="status" aria-live="polite">step 1 of 3</span></div>
       <div class="surface__body">
         <div class="stepper" aria-hidden="true">
           <span class="step" data-step="0"><span class="step__n">1</span> Search</span><span class="step__sep"></span>
@@ -35,7 +36,7 @@
 
         <div id="s2" style="margin-top:var(--s4)"></div>
         <div id="s3" style="margin-top:var(--s4)"></div>
-        <div id="result" style="margin-top:var(--s4)"></div>
+        <div id="result" role="status" aria-live="polite" style="margin-top:var(--s4)"></div>
       </div>
     </section>
   </main>
@@ -66,7 +67,7 @@
         '<p class="flowline">1 result for &ldquo;' + (q.value || 'wireless headphones') + '&rdquo;</p>' +
         '<div class="item" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s3);margin-bottom:var(--s3)">' +
           '<span class="thumb">AH</span>' +
-          '<span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">In stock · ships free</div></span>' +
+          '<div><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">In stock · ships free</div></div>' +
           '<span class="item__price">$79.00</span>' +
         '</div>' +
         '<button id="' + addId + '" class="btn-primary" aria-label="Add to cart">' + addTxt + '</button>';
@@ -79,8 +80,9 @@
         setStep(2);
 
         document.getElementById('checkout').addEventListener('click', function(){
-          document.getElementById('result').textContent = '✅ Order placed';
-          document.getElementById('result').style.color = '#3FE0A6';
+          var r = document.getElementById('result');
+          r.textContent = '✅ Order placed';
+          r.className = 'is-ok';
           setStep(3);
         });
       });

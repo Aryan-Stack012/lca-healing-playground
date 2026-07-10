@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Validation · LCA Playground</title>
+<meta name="description" content="Validation and mismatch legs: the shared flag drifts #status-badge (heals); ?wrong=1 and ?remove=1 create assertion mismatches that must never heal.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,13 +27,13 @@
       </div>
       <div class="surface__body">
         <div class="items">
-          <div class="item"><span class="thumb">SK</span><span><div class="item__name">Starter Kit</div><div class="item__meta">Annual plan · Qty 1</div></span><span class="item__price">$120.00</span></div>
+          <div class="item"><span class="thumb">SK</span><div><div class="item__name">Starter Kit</div><div class="item__meta">Annual plan · Qty 1</div></div><span class="item__price">$120.00</span></div>
         </div>
         <hr class="divider">
         <div class="rows">
           <div class="row"><span class="row__k">Subtotal</span><span class="row__v">$120.00</span></div>
           <div class="row row--strike"><span class="row__k">Promo · LCA20</span><span class="row__v">−$20.00</span></div>
-          <div class="row row--total"><span class="row__k">Total</span><span class="row__v"><span id="total">$100</span></span></div>
+          <div class="row row--total"><span class="row__k">Total</span><span class="row__v"><span id="total">$100.00</span></span></div>
         </div>
         <div id="optional"></div>
         <hr class="divider">
@@ -44,10 +45,12 @@
   <script src="assets/page.js"></script>
   <script>
   var p=new URLSearchParams(location.search);
-  if(!p.has('remove')){document.getElementById('optional').innerHTML='<p id="promo">Promo applied</p>';}
+  // honor the documented ?remove=1 / ?wrong=1 contract: ?remove=0 / ?wrong=false stay off
+  function armed(k){ if(!p.has(k)) return false; var v=p.get(k); return !(v==='0'||v==='false'||v==='off'); }
+  if(!armed('remove')){document.getElementById('optional').innerHTML='<p id="promo">Promo applied</p>';}
   lcaBreak().then(function(v2){
-    var bid=v2?'status_v2':'status-badge',txt=p.has('wrong')?'Cancelled':'Confirmed';
-    document.getElementById('badgezone').innerHTML='<p>Status: <span id="'+bid+'">'+txt+'</span></p>';
+    var bid=v2?'status_v2':'status-badge',txt=armed('wrong')?'Cancelled':'Confirmed';
+    document.getElementById('badgezone').innerHTML='<p><span id="'+bid+'">'+txt+'</span></p>';
   });
   </script>
 </body>

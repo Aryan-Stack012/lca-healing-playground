@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API console · LCA Playground</title>
+<meta name="description" content="Fetches api/todo.json live and echoes status + body. A status or JSON mismatch is a real failure — never healed.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="api.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Never heals · API</span>
+      <h1>API console</h1>
+      <p class="page__note">Fetches <code>api/todo.json</code> live and echoes the status and body (S14). Assert the fields for the passing leg; a wrong status code or a JSON mismatch is a real failure that must <b>never</b> heal.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">GET api/todo.json</h2><span class="badge" id="status">fetching…</span></div>
+      <div class="surface__body stack">
+        <div class="rows">
+          <div class="row"><span class="row__k">Endpoint</span><span class="row__v" style="text-transform:none">api/todo.json</span></div>
+          <div class="row"><span class="row__k">Latency</span><span class="row__v" id="latency">—</span></div>
+          <div class="row"><span class="row__k">Expected</span><span class="row__v" style="text-transform:none">200 · id 1 · title "heal-demo"</span></div>
+        </div>
+        <div>
+          <div class="meta" style="margin-bottom:6px">response body</div>
+          <pre id="body" aria-label="JSON response body">…</pre>
+        </div>
+        <div class="inline">
+          <button id="refetch" class="btn-primary">Re-fetch</button>
+          <span class="meta">Same request, fresh response — cache is bypassed.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Failure legs</h2><span class="badge badge--err">never healed</span></div>
+      <div class="surface__body stack">
+        <p class="meta" style="margin:0">External calls to httpbin.org — fired on click only. An HTTP error status is an assertion failure, not a broken locator: no heal may fire.</p>
+        <div class="inline">
+          <button id="hit401" class="decoy">GET /status/401</button>
+          <button id="hit500" class="decoy">GET /status/500</button>
+          <span id="extres" role="status" aria-live="polite" class="meta"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  var statusEl=document.getElementById('status');
+  function fetchTodo(){
+    statusEl.textContent='fetching…'; statusEl.className='badge';
+    var t0=performance.now();
+    fetch('api/todo.json?cb='+Date.now(),{cache:'no-store'})
+      .then(function(res){
+        document.getElementById('latency').textContent=Math.round(performance.now()-t0)+' ms';
+        statusEl.textContent=res.status+' '+(res.ok?'OK':res.statusText||'error');
+        statusEl.className='badge '+(res.ok?'badge--ok':'badge--err');
+        return res.json();
+      })
+      .then(function(j){ document.getElementById('body').textContent=JSON.stringify(j,null,2); })
+      .catch(function(e){
+        statusEl.textContent='unreachable'; statusEl.className='badge badge--err';
+        document.getElementById('latency').textContent='—';
+        document.getElementById('body').textContent='(request failed: '+e.message+')';
+      });
+  }
+  fetchTodo();
+  document.getElementById('refetch').addEventListener('click',fetchTodo);
+
+  function hitExternal(code){
+    var out=document.getElementById('extres');
+    out.textContent='calling httpbin…'; out.className='meta';
+    fetch('https://httpbin.org/status/'+code,{cache:'no-store'})
+      .then(function(res){ out.textContent='httpbin returned '+res.status; out.className=res.ok?'is-ok':'is-bad'; })
+      .catch(function(){ out.textContent='httpbin unreachable (network/CORS)'; out.className='is-bad'; });
+  }
+  document.getElementById('hit401').addEventListener('click',function(){hitExternal(401);});
+  document.getElementById('hit500').addEventListener('click',function(){hitExternal(500);});
+  </script>
+</body>
+</html>

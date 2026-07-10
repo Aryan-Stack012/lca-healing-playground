@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 · LCA Playground</title>
+<meta name="description" content="This URL doesn't resolve — unlike a drifted locator, a missing page can't be healed.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23060912'/%3E%3Cpath d='M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35' fill='none' stroke='%23FF7E8C' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<!-- Self-contained on purpose: GitHub Pages serves this file for ANY missing path,
+     so relative stylesheets/scripts/icons could 404 too. Everything is inline. -->
+<style>
+:root{
+  --ink:#060912; --panel:#131A2C; --line:#233048; --line-soft:#1A2336;
+  --text:#E8EDF7; --muted:#8A97AE; --signal:#5BC8FF; --gone:#FF7E8C; --gone-dim:rgba(255,126,140,.14);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(900px 500px at 70% -10%, rgba(255,126,140,.07), transparent 60%), var(--ink);
+  color:var(--text); font:15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing:antialiased; padding:24px;
+}
+.card{max-width:520px; width:100%; border:1px solid var(--line); border-radius:14px; background:var(--panel);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 14px 30px -16px rgba(0,0,0,.72); padding:32px; text-align:left}
+.mark{display:flex; align-items:center; gap:12px; margin-bottom:20px}
+.mark svg{flex:none}
+.mark span{font-weight:600; letter-spacing:-.01em}
+.tag{display:inline-flex; align-items:center; gap:7px; font:700 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--gone); background:var(--gone-dim);
+  border:1px solid rgba(255,126,140,.4); border-radius:999px; padding:6px 11px; margin-bottom:14px}
+.tag::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--gone); box-shadow:0 0 9px var(--gone)}
+h1{font-size:26px; line-height:1.15; letter-spacing:-.02em; margin:0 0 10px}
+p{margin:0 0 8px; color:var(--muted)}
+code{font:12px ui-monospace, "SF Mono", Menlo, monospace; color:var(--text); background:var(--ink);
+  border:1px solid var(--line-soft); border-radius:6px; padding:2px 7px; word-break:break-all}
+a{color:var(--signal); text-decoration:none}
+a:hover{text-decoration:underline; text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--signal); outline-offset:3px; border-radius:6px}
+.home{display:inline-block; margin-top:18px; font-weight:600; background:var(--signal); color:#04202C;
+  border-radius:10px; padding:11px 18px}
+.home:hover{text-decoration:none; filter:brightness(1.08)}
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">
+      <svg width="34" height="34" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+        <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" stroke="#FF7E8C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Self-Healing Playground</span>
+    </div>
+    <span class="tag">404 · unhealable</span>
+    <h1>This page is gone — and no heal will bring it back.</h1>
+    <p>A drifted locator can be re-derived; a missing URL can't. Requested path: <code id="path">…</code></p>
+    <p>If a saved test landed here, the navigation step itself is broken — that's a real failure, not a heal candidate.</p>
+    <a class="home" id="home" href="/">← Back to the playground hub</a>
+  </main>
+  <script>
+  document.getElementById('path').textContent = location.pathname;
+  // GitHub Pages serves this file for any missing path — including project pages where the
+  // site root is /<repo>/. Walk up the path segments until flag.json answers, then link there.
+  (async function(){
+    var segs = location.pathname.split('/').filter(Boolean);
+    for (var i = segs.length; i >= 0; i--) {
+      var root = '/' + segs.slice(0, i).join('/') + (i ? '/' : '');
+      try {
+        var r = await fetch(root + 'flag.json', {cache:'no-store'});
+        if (r.ok) { document.getElementById('home').setAttribute('href', root); return; }
+      } catch (e) {}
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
+<meta property="og:title" content="LCA Self-Healing Playground">
+<meta property="og:description" content="Break a locator on demand and watch the heal fire — 34 cases, 12 target pages, one shared flag, same URL throughout.">
+<meta property="og:type" content="website">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -154,6 +157,7 @@
 .switch input:checked + .track{background:var(--drift-dim); border-color:var(--drift)}
 .switch input:checked + .track .knob{transform:translateX(22px); background:var(--drift); box-shadow:0 0 10px var(--drift)}
 .switch input:disabled + .track{opacity:.5}
+.switch input:focus-visible + .track{outline:2px solid var(--signal); outline-offset:3px}
 .switch-help{font-size:var(--fs-75); color:var(--muted); margin:0}
 .switch-help code{font-family:var(--font-mono); font-size:var(--fs-75); background:var(--ink); padding:1px 6px; border-radius:5px; color:var(--text)}
 .switch-note{font-size:var(--fs-75); color:var(--drift); margin:var(--s2) 0 0; display:none; font-family:var(--font-mono)}
@@ -200,7 +204,7 @@
 .scn__wave{display:block; width:56px; height:16px; opacity:.85}
 .scn__wave path{fill:none; stroke:var(--state); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
 .scn__tag{font-family:var(--font-mono); font-size:10px; letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--state); background:var(--state-dim); border:1px solid color-mix(in srgb,var(--state) 40%, transparent); padding:2px 8px; border-radius:var(--r-pill); white-space:nowrap}
-.scn[data-state="config"] .scn__tag{border-style:dashed}
+.scn[data-state="config"] .scn__tag{border-style:dashed; color:var(--faint)} /* steel misses AA at 10px — lift text, keep steel border */
 .scn__title{font-family:var(--font-display); font-weight:600; font-size:var(--fs-300); margin:2px var(--s4) var(--s2); letter-spacing:-.01em}
 .scn__desc{margin:0 var(--s4) var(--s3); font-size:var(--fs-100); color:var(--muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; max-height:calc(1.5em * 3)}
 .scn__params{display:flex; flex-wrap:wrap; gap:6px; padding:0 var(--s4); min-height:6px}
@@ -216,7 +220,7 @@
 .chip:hover{border-color:var(--line-strong); color:var(--text)}
 .chip:active{transform:scale(.96); transition:transform .08s ease}
 .chip[aria-pressed="true"]{background:var(--text); color:var(--ink); border-color:var(--text); font-weight:500}
-.chip .n{opacity:.55; margin-left:5px; font-variant-numeric:tabular-nums}
+.chip .n{opacity:.9; margin-left:5px; font-variant-numeric:tabular-nums}
 .chip[data-f="heals"][aria-pressed="true"]{background:var(--healthy); border-color:var(--healthy); color:#04231a}
 .chip[data-f="noheal"][aria-pressed="true"]{background:var(--gone); border-color:var(--gone); color:#2c0710}
 .chip[data-f="mixed"][aria-pressed="true"]{background:var(--drift); border-color:var(--drift); color:#2c1c02}
@@ -229,7 +233,7 @@
 }
 .tablescroll{overflow-x:auto}
 table{border-collapse:collapse; width:100%; min-width:680px; font-size:var(--fs-100); font-variant-numeric:tabular-nums}
-thead th{position:sticky; top:0; background:var(--ink-2); font-family:var(--font-mono); font-size:var(--fs-50); font-weight:500; letter-spacing:var(--track-label); text-transform:uppercase; color:var(--faint); text-align:left; padding:var(--s2) var(--s4); border-bottom:1px solid color-mix(in srgb, var(--signal) 16%, var(--line))}
+thead th{background:var(--ink-2); font-family:var(--font-mono); font-size:var(--fs-50); font-weight:500; letter-spacing:var(--track-label); text-transform:uppercase; color:var(--faint); text-align:left; padding:var(--s2) var(--s4); border-bottom:1px solid color-mix(in srgb, var(--signal) 16%, var(--line))}
 tbody td{padding:var(--s3) var(--s4); border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--muted)}
 tbody tr:nth-child(even){background:rgba(255,255,255,.014)}
 tbody tr:hover{background:var(--ink-2)}
@@ -406,7 +410,7 @@ tbody tr:hover{background:var(--ink-2)}
   <section class="section reveal" aria-labelledby="scnH">
     <div class="section__head">
       <h2 id="scnH">Scenario targets</h2>
-      <span class="count">10 pages</span>
+      <span class="count" id="scnCount">12 pages</span>
     </div>
     <div class="grid" id="scnGrid"></div>
   </section>
@@ -439,7 +443,7 @@ tbody tr:hover{background:var(--ink-2)}
   <footer class="foot">
     <p>Same URL the whole time — the flag decides the break.</p>
     <div class="pillrow">
-      <a class="pill" href="README.md">README</a>
+      <a class="pill" href="https://github.com/Aryan-Stack012/lca-healing-playground#readme">README</a>
       <a class="pill" href="flag.json">flag.json</a>
       <a class="pill" href="api/todo.json">api/todo.json</a>
     </div>
@@ -456,15 +460,17 @@ tbody tr:hover{background:var(--ink-2)}
 ---------------------------------------------------------- */
 var SCENARIOS = [
   {file:"checkout.html",   o:"heals",  title:"Checkout",          desc:"The primary heal target. The break relocates the button into a menu and plants a 'Continue' decoy; <code>?gone=1</code> removes it entirely.", params:["?v=2","?gone=1"]},
-  {file:"validation.html", o:"mixed",  title:"Validation",        desc:"Drifts <code>#status-badge</code> to trigger a heal. <code>?wrong=1</code> flips the badge text and <code>?remove=1</code> drops the promo — mismatches that must never heal.", params:["?wrong=1","?remove=1"]},
+  {file:"validation.html", o:"mixed",  title:"Validation",        desc:"Drifts <code>#status-badge</code> to trigger a heal. <code>?wrong=1</code> flips the badge text and <code>?remove=1</code> drops the promo — mismatches that must never heal.", params:["?v=2","?wrong=1","?remove=1"]},
   {file:"frames.html",     o:"heals",  title:"iFrame + Shadow DOM",desc:"The same Checkout button, nested inside an iframe and a shadow root. The heal has to re-find it across both boundaries.", params:["?v=2"]},
-  {file:"flow.html",       o:"heals",  title:"Multi-step flow",    desc:"Search → Add to cart → Checkout. The break drifts the middle step, forcing a replay to the first failing step.", params:[]},
-  {file:"data.html",       o:"mixed",  title:"Producer / consumer",desc:"Producer shows a token to extract; the break drifts its id. The consumer verifies the captured value via <code>?use=</code>.", params:["?use=HEAL-7421"]},
+  {file:"flow.html",       o:"heals",  title:"Multi-step flow",    desc:"Search → Add to cart → Checkout. The break drifts the middle step, forcing a replay to the first failing step.", params:["?v=2"]},
+  {file:"data.html",       o:"mixed",  title:"Producer / consumer",desc:"Producer shows a token to extract; the break drifts its id. The consumer verifies the captured value via <code>?use=</code>.", params:["?v=2","?use=HEAL-7421"]},
   {file:"email.html",      o:"mixed",  title:"Verification inbox", desc:"Drifts the verify-link and OTP ids so a heal must re-derive them. Asserting the wrong OTP is a mismatch that won't heal.", params:["?v=2"]},
   {file:"timing.html",     o:"app",    title:"Late element",       desc:"The button appears after <code>?delay=ms</code> (default 5000) — exercises intelligent wait. A huge delay is a genuine timeout, not a heal.", params:["?delay=5000"]},
   {file:"visual.html",     o:"noheal", title:"Visual diff",        desc:"Colour and number randomise on every load, so a visual baseline never matches. A real failure — never healed.", params:["random"]},
   {file:"cookie.html",     o:"app",    title:"Browser config",     desc:"Echoes the cookies and localStorage the run actually sees. Confirms a heal run still carries your configured state.", params:["demoConfig"]},
-  {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]}
+  {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]},
+  {file:"upload.html",     o:"app",    title:"File upload",       desc:"Native file input → OS dialog. Upload <code>report.txt</code> and assert the echoed name; cancelling the dialog must not burn heal budget.", params:[]},
+  {file:"api.html",        o:"noheal", title:"API console",       desc:"Fetches <code>api/todo.json</code> live and echoes status + body. A status or JSON mismatch is a real failure — never healed.", params:[]}
 ];
 
 var CASES = [
@@ -481,12 +487,12 @@ var CASES = [
   ["S11","app",  "checkout.html + a non-AI test",                "Suite: auto-rerun ON (no adaptive heal) vs OFF (heal AI only)"],
   ["S12","app",  "checkout.html",                                "App UI: healed run → 'AI healed' badge (only) + AI sparkle in build details"],
   ["S13","heals","frames.html",                                  "?v=2 drifts the iframe + shadow-DOM button → adaptive re-finds across the boundary"],
-  ["S14","noheal","api/todo.json + httpbin.org/status/401,500",  "API failure (status / JSON mismatch) → never healed"],
+  ["S14","noheal","api.html + httpbin.org/status/401,500",       "API failure (status / JSON mismatch) → never healed; api.html renders api/todo.json live"],
   ["S15","noheal","download.html + visual.html",                 "Wrong filename / visual mismatch → not healed; visual baselines stay per-browser"],
   ["S16","app",  "timing.html",                                  "?delay element for intelligent-wait; set fail-and-stop / fail-but-continue in app"],
   ["S17","app",  "checkout.html",                                "App: recorder edit (heal off) / restore AI version (on) / 'Save as steps' (never)"],
   ["S18","app",  "checkout.html",                                "App: view-test Run vs Build run → no double-heal / conflicting versions"],
-  ["S19","app",  "checkout.html (scheduled) + the-internet/upload","Scheduled heal; 'Aborted' via OS file dialog doesn't burn budget; auto-rerun = no heal"],
+  ["S19","app",  "checkout.html (scheduled) + upload.html",      "Scheduled heal; 'Aborted' via the OS file dialog on upload.html doesn't burn budget; auto-rerun = no heal"],
   ["S20","heals","data.html",                                    "Extract #token (?v=2 drifts) → build report keeps the heal + preserves {{token}}"],
   ["S21","noheal","checkout.html (used as a module)",            "Module/shared step fails → never healed; surrounding AI steps still heal"],
   ["S22","mixed","checkout.html",                                "?v=2 → heal → new 'Auto-healed by BrowserStack AI' version; ?gone=1 → heal fails → NO version"],
@@ -525,12 +531,25 @@ function miniWave(kind){
 /* ----------------------------------------------------------
    2. Render scenario cards
 ---------------------------------------------------------- */
+// Carry a live per-tab override (?v=2/?break/?gone) onto in-playground links so the
+// state the hub monitor reports survives navigation to the target pages and back.
+function overrideQuery(){
+  try{
+    var p = new URLSearchParams(location.search), keep = new URLSearchParams();
+    ["v","break","gone"].forEach(function(k){ if(p.has(k)) keep.set(k, p.get(k)); });
+    var q = keep.toString();
+    return q ? "?" + q : "";
+  }catch(e){ return ""; }
+}
+
 (function(){
-  var grid = document.getElementById("scnGrid"), html = "";
+  var grid = document.getElementById("scnGrid"), html = "", oq = overrideQuery();
+  var count = document.getElementById("scnCount");
+  if(count) count.textContent = SCENARIOS.length + " pages";
   SCENARIOS.forEach(function(s){
     var ds = ST[s.o];
     var params = s.params.map(function(p){return "<code>"+p+"</code>"}).join("");
-    html += '<a class="scn" href="'+s.file+'" data-state="'+ds+'">'
+    html += '<a class="scn" href="'+s.file+oq+'" data-state="'+ds+'">'
       + '<div class="scn__top"><span class="scn__file">'+s.file+'</span>'
         + '<span class="scn__meta">'+miniWave(ds)+'<span class="scn__tag">'+TAG[s.o]+'</span></span></div>'
       + '<div class="scn__title">'+s.title+'</div>'
@@ -548,7 +567,8 @@ function miniWave(kind){
 ---------------------------------------------------------- */
 (function(){
   var body = document.getElementById("caseBody");
-  var LOCAL = /^(checkout|validation|frames|visual|timing|flow|data|email|cookie|download)\.html(\?[^\s)]*)?|api\/todo\.json/g;
+  // \b (not ^): every occurrence in a multi-target cell gets linked, not just the first
+  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|data|email|cookie|download|upload|api)\.html(\?[^\s)]*)?|api\/todo\.json/g;
   function linkify(txt){ return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; }); }
   var rows = CASES.map(function(c){
     return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'
@@ -636,14 +656,18 @@ var SRC = {
   url_drift:'overridden by URL <b>?v=2</b>',
   url_gone: 'overridden by URL <b>?gone=1</b>',
   local:    'set in <b>localStorage</b> (this browser)',
-  flag:     'resolved from <b>flag.json</b> (shared)'
+  flag:     'resolved from <b>flag.json</b> (shared)',
+  fallback: 'default — <b>flag.json</b> unreachable'
 };
 
-var lastState = null, resolving = false;
+function lsBreakArmed(){ try{ return localStorage.getItem("lcaBreak") === "1"; }catch(e){ return false; } }
+
+var lastState = null, resolving = false, rerunQueued = false;
 async function resolveAndRender(){
-  if(resolving) return; resolving = true;
+  if(resolving){ rerunQueued = true; return; }
+  resolving = true;
   try{
-    var r; try{ r = await lcaResolve(); }catch(e){ r = {state:"healthy", source:"flag"}; }
+    var r; try{ r = await lcaResolve(); }catch(e){ r = {state:"healthy", source:"fallback"}; }
     var state = r.state, src = r.source;
 
     ["screen","plate","resoCard","flagchip"].forEach(function(id){
@@ -662,6 +686,7 @@ async function resolveAndRender(){
     var urlOverride = (src==="url_drift" || src==="url_gone");
     var ov = document.getElementById("ov");
     ov.disabled = urlOverride;
+    ov.checked = lsBreakArmed(); // re-sync every render so another tab's toggle can't desync this switch
     document.getElementById("ovNote").classList.toggle("show", urlOverride);
 
     if(state !== lastState){
@@ -672,27 +697,41 @@ async function resolveAndRender(){
       document.getElementById("liveState").textContent = "Heal signal: " + COPY[state].word + " — " + COPY[state].plain + ".";
       lastState = state;
     }
-  } finally { resolving = false; }
+  } finally {
+    resolving = false;
+    if(rerunQueued){ rerunQueued = false; resolveAndRender(); }
+  }
 }
 
-// override switch ↔ localStorage.lcaBreak
+// override switch ↔ localStorage.lcaBreak (storage access guarded: a blocked-storage
+// browser must degrade to flag.json state, not kill the rest of this script block)
 (function(){
   var ov = document.getElementById("ov");
-  ov.checked = localStorage.getItem("lcaBreak")==="1";
+  ov.checked = lsBreakArmed();
   ov.addEventListener("change", function(){
-    if(ov.checked) localStorage.setItem("lcaBreak","1"); else localStorage.removeItem("lcaBreak");
+    try{
+      if(ov.checked) localStorage.setItem("lcaBreak","1"); else localStorage.removeItem("lcaBreak");
+    }catch(e){}
     resolveAndRender();
+  });
+  // another tab flipping the switch updates this one live
+  window.addEventListener("storage", function(e){
+    if(!e.key || e.key === "lcaBreak") resolveAndRender();
   });
 })();
 
-// reveal below-the-fold sections as they scroll in (hero + cluster are already .in)
+// reveal below-the-fold sections as they scroll in (hero + cluster are already .in).
+// Scroll is a hint, not a requirement: full-page screenshots, jump-scrolls and
+// agent-driven runs never scroll organically, so everything reveals shortly after load.
 (function(){
   var items = Array.prototype.slice.call(document.querySelectorAll(".section.reveal"));
-  if(!("IntersectionObserver" in window)){ items.forEach(function(el){el.classList.add("in");}); return; }
+  function revealAll(){ items.forEach(function(el){ el.classList.add("in"); }); }
+  if(!("IntersectionObserver" in window)){ revealAll(); return; }
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
   }, {rootMargin:"0px 0px -10% 0px"});
   items.forEach(function(el){ io.observe(el); });
+  setTimeout(function(){ revealAll(); io.disconnect(); }, 900);
 })();
 
 setWave("healthy");           // paint a trace synchronously so boot reveals signal, not an empty grid

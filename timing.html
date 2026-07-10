@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Late element · LCA Playground</title>
+<meta name="description" content="The Checkout action appears after ?delay=ms (default 5000) — exercises intelligent wait, not a heal. A very large delay is a genuine timeout.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,11 +21,11 @@
     </header>
 
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Your cart</h2><span class="badge badge--warn" id="loadBadge">loading</span></div>
+      <div class="surface__head"><h2 class="surface__title">Your cart</h2><span class="badge badge--warn" id="loadBadge" role="status" aria-live="polite">loading</span></div>
       <div class="surface__body stack">
         <div class="item">
           <span class="thumb">AH</span>
-          <span><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></span>
+          <div><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">Midnight · Qty 1</div></div>
           <span class="item__price">$79.00</span>
         </div>
         <div class="rows">
@@ -39,10 +40,14 @@
   <script src="flag.js"></script>
   <script src="assets/page.js"></script>
   <script>
-  var d=parseInt(new URLSearchParams(location.search).get('delay')||'5000',10);
+  // malformed / negative ?delay falls back to the documented default; huge delays stay
+  // legal (a genuine timeout is the point) but are clamped to setTimeout's 32-bit max
+  var d=parseInt(new URLSearchParams(location.search).get('delay'),10);
+  if(!isFinite(d)||d<0) d=5000;
+  d=Math.min(d,2147483647);
   setTimeout(function(){
     document.getElementById('zone').innerHTML='<button id="checkout" class="btn-primary" aria-label="Checkout">Checkout</button>';
-    document.querySelector('#zone button').onclick=function(){document.getElementById('result').textContent='clicked';};
+    document.querySelector('#zone button').onclick=function(){var r=document.getElementById('result');r.textContent='✅ Checkout clicked';r.className='is-ok';};
     var b=document.getElementById('loadBadge'); if(b){b.textContent='ready'; b.className='badge badge--ok';}
   },d);
   </script>

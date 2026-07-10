@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>File download · LCA Playground</title>
+<meta name="description" content="Download report.txt and assert the saved filename — the correct name passes; a wrong name is a validation failure that won't heal.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,10 +25,10 @@
       <div class="surface__body stack">
         <div class="filecard">
           <span class="fileicon" aria-hidden="true"></span>
-          <span style="flex:1">
+          <div style="flex:1">
             <div class="filecard__name">report.txt</div>
             <div class="meta">Plain text · build LCA-4821 · 28 bytes</div>
-          </span>
+          </div>
           <a id="dl" class="dl-btn" href="files/report.txt" download="report.txt">Download report</a>
         </div>
         <div class="rows">

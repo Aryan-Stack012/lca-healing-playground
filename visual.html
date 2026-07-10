@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Visual diff · LCA Playground</title>
+<meta name="description" content="Colour and value randomise on every load, so a stored visual baseline never matches. A visual mismatch is a real failure — never healed.">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +44,12 @@
   <script>
   var c=['#e8453c','#0b66ff','#0a0','#a05ad6','#f29d0b'][Math.floor(Math.random()*5)],n=Math.floor(Math.random()*1000),b=document.getElementById('box');
   b.style.background=c;b.textContent=n;
+  // keep the digits legible on every random swatch: light backgrounds get dark text
+  (function(){
+    var h=c.length===4?'#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3]:c;
+    var yiq=(parseInt(h.substr(1,2),16)*299+parseInt(h.substr(3,2),16)*587+parseInt(h.substr(5,2),16)*114)/1000;
+    b.style.color=yiq>=150?'#08101E':'#fff';
+  })();
   </script>
 </body>
 </html>
