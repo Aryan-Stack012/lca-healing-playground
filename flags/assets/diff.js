@@ -498,16 +498,22 @@
     if (applied["Clipboard access"] === false) {
       addRow("·", "cl-row--pref", "pref profile.default_content_setting_values.clipboard = 2", "← Clipboard access Disabled (default on agentic/desktop paths is allow)");
       count++;
-    } else if (applied["Clipboard access"] === true) {
-      addRow("·", "", "(clipboard allowed — LCNC defaults already set clipboard = 1, so 'Enabled' is indistinguishable from default)", "");
+    } else if (s.verdicts && s.verdicts.clipboard && s.verdicts.clipboard.verdict === "Allowed") {
+      addRow("·", "", "(clipboard allowed — LCNC defaults already set clipboard = 1, so 'Enabled' is indistinguishable from default and not counted)", "");
     }
 
-    // incognito — no JS signal on modern Chrome
-    if (s.incognito && s.incognito.chromeMajor != null && s.incognito.chromeMajor >= 133) {
-      addRow("·", "", "(--incognito not inferable: Chrome " + s.incognito.chromeMajor + " hardcodes storage quota in both modes — verify via run UI/video)", "");
-    } else if (applied["Incognito mode (heuristic)"] === true) {
-      addRow("±", "cl-row--inf", "--incognito", "← Incognito mode (quota heuristic — verify)");
+    // incognito — quota-GAP heuristic: Chrome 133+ reports min(real quota, usage + 10 GiB),
+    // so a normal profile reads exactly usage + 10 GiB while incognito's smaller RAM-derived
+    // cap shows through. A "Likely off" on a run that SET the flag is the pre-#1946 symptom:
+    // the MCP page swap's context.newPage() escaped the incognito profile.
+    var inc = s.incognito || {};
+    if (applied["Incognito mode (heuristic)"] === true) {
+      addRow("±", "cl-row--inf", "--incognito", "← Incognito mode (quota-gap heuristic — verify)");
       inferred++;
+    } else if (applied["Incognito mode (heuristic)"] === false && inc.chromeMajor != null && inc.chromeMajor >= 133) {
+      addRow("·", "", "(--incognito not detected: quota − usage = exactly 10 GiB, the normal-profile signature — if this run set the flag, the agent tab escaped incognito: the pre-#1946 newPage() swap bug)", "");
+    } else if (applied["Incognito mode (heuristic)"] == null && inc.quotaGB != null) {
+      addRow("·", "", "(--incognito ambiguous: quota " + inc.quotaGB.toFixed(2) + " GB — compare an on/off pair or verify via run UI/video)", "");
     }
 
     var mAdd = byId("m-add");

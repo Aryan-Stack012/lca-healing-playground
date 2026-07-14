@@ -100,10 +100,14 @@
           <p class="page__note">
             <b>Reading the results — the launch path matters.</b> The <b>live agentic path</b>
             (<code>preCreateSeleniumSession</code> → <code>BrowserFlagsHandler</code>) applies flag <b>args and
-            prefs</b>, dedupes repeats, and its defaults already allow clipboard (pref&nbsp;=&nbsp;1). The
-            <b>WDIO replay path</b> ignores user flags entirely and force-denies geolocation/camera/mic/notifications.
-            An older <b>pwCaps path</b> appends args only. So the same flag can behave differently per run type —
-            exactly what this page exposes. Confidence per card: <b>strong</b> (definitive JS signal) vs
+            prefs</b>, dedupes repeats, and its defaults already allow clipboard (pref&nbsp;=&nbsp;1).
+            Since lcnc-services <b>#1946</b> + lcnc-backend <b>#4486</b>, the <b>validation replay</b> and
+            <b>Argus cached-run</b> paths route through the same canonical handler and agent overlay —
+            args <b>and</b> prefs — and group-level popup-suppression defaults became overridable fallbacks
+            (the user's own catalog choice wins). All run types should now read <em>identically</em> here;
+            a per-run-type mismatch on this page is the regression signal. On pre-fix builds the replay
+            paths dropped user flags entirely and the older <b>pwCaps path</b> appended args only.
+            Confidence per card: <b>strong</b> (definitive JS signal) vs
             <b>heuristic</b> (inferred — verify by comparing on/off). See the
             <a href="diff.html">launch diff</a> for the full command-line picture.
           </p>
@@ -187,7 +191,7 @@
             <button class="run" data-run="location">Get position</button>
             <span class="conf">signal · <b>strong</b></span>
           </div>
-          <p class="probe__note">Pref-only (no arg). Applied on the live agentic + desktop paths; the WDIO replay path force-sets geolocation = 2 and ignores this flag — <em>Blocked</em> there even when enabled.</p>
+          <p class="probe__note">Pref-only (no arg). Post-#1946 every path applies this pref through the canonical handler, and the group-level <code>disableLocationPopup</code> default (geolocation = 2) is only a fallback the user's catalog choice overrides. On pre-fix builds the replay path force-set geolocation = 2 — <em>Blocked</em> there even when enabled, which is the regression to watch for.</p>
         </article>
 
         <!-- 4 -->
@@ -212,7 +216,7 @@
             <button class="run" data-run="clipboard">Read clipboard</button>
             <span class="conf">signal · <b>strong</b> (read)</span>
           </div>
-          <p class="probe__note">Discriminator is <code>clipboard-read</code> — write is auto-allowed regardless. The agentic and desktop defaults already set clipboard = 1, so <em>Enabled</em> is indistinguishable from default; only <em>Disabled</em> (pref = 2) is observable.</p>
+          <p class="probe__note">Discriminator is <code>clipboard-read</code> — write is auto-allowed regardless. The agentic and desktop defaults already set clipboard = 1, so <em>Enabled</em> is indistinguishable from default and <b>does not count toward the active-toggles metric</b> (a zero-flag run reads 0 / 7); only <em>Disabled</em> (pref = 2) is observable.</p>
         </article>
 
         <!-- 5 -->
@@ -234,9 +238,9 @@
           </div>
           <div class="ev" data-role="ev"></div>
           <div class="probe__foot">
-            <span class="conf">signal · <b>heuristic</b></span>
+            <span class="conf">signal · <b>heuristic (quota gap)</b></span>
           </div>
-          <p class="probe__note">No <code>isIncognito</code> API — and Chrome 133+ hardcodes the storage quota to usage + 10 GiB in both modes, deliberately killing quota detection. On modern Chrome, verify via the run's UI/video.</p>
+          <p class="probe__note">No <code>isIncognito</code> API. Chrome 133+ reports quota as <code>min(real, usage + 10 GiB)</code>: a normal profile reads <em>exactly</em> usage + 10 GiB, while incognito's smaller RAM-derived cap (≈1–4 GiB) shows through — the gap is the signal. This catches the lcnc-services #1946 regression where the agent's tab silently escaped incognito (<code>newPage()</code> → normal profile → full 10 GiB gap). High-RAM hosts can mask it — confirm via the run's UI/video when it matters.</p>
         </article>
 
         <!-- 6 -->
@@ -261,7 +265,7 @@
           <div class="probe__foot">
             <span class="conf">signal · <b>heuristic (aggregate)</b></span>
           </div>
-          <p class="probe__note">The WDIO replay path force-adds this arg (reads <em>on</em> even when off); the live agentic path adds it only when set. camera/mic <code>query()</code> may say <em>prompt</em> while requests still auto-deny — and fake-ui beats the deny for camera.</p>
+          <p class="probe__note">Post-#1946 the suppression args ride group-level Flipper flags on every path and the user's own catalog choice wins (R13 precedence) — pre-fix, the replay path force-added this arg and read <em>on</em> even when off. camera/mic <code>query()</code> may say <em>prompt</em> while requests still auto-deny — and fake-ui beats the deny for camera.</p>
         </article>
 
         <!-- 7 -->
@@ -321,7 +325,7 @@
             <a class="menu" href="language.html">Open language deep-dive →</a>
             <span class="conf">signal · <b>strong</b></span>
           </div>
-          <p class="probe__note"><code>navigator.languages[0]</code> is the reliable check; the Accept-Language header Chrome sends is derived from it.</p>
+          <p class="probe__note"><code>navigator.languages[0]</code> is the reliable check; the Accept-Language header Chrome sends is derived from it. Since #1946 the live agent session finally applies the locale (pref <code>intl.accept_languages</code> — it never reached generation before) and Argus cached replays mirror it — so a default <code>en-US</code> here on a locale-configured run is the pre-fix symptom.</p>
         </article>
 
       </div>

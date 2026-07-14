@@ -216,11 +216,18 @@
     updateSummary();
   }
 
-  /* ---------------- 5: Incognito mode (--incognito) — quota heuristic is version-gated ---------------- */
-  // Chrome 133+ deliberately killed quota-based incognito detection: storage.estimate() returns
-  // an artificial usage + 10 GiB in BOTH modes (blink-dev "Quota API: hardcode quota"), so on
-  // modern Chrome there is NO reliable JS signal — say so instead of guessing. On <133 the old
-  // capped-quota-vs-fraction-of-disk gap still discriminates.
+  /* ---------------- 5: Incognito mode (--incognito) — quota-GAP heuristic, version-gated ---------------- */
+  // Chrome 133+'s "hardcoded" quota (blink-dev "Quota API: hardcode quota") is really
+  // min(real quota, usage + 10 GiB). A normal profile's real quota (~60% of disk) sits far
+  // above 10 GiB, so it reports usage + 10 GiB EXACTLY; incognito keeps its small RAM-derived
+  // in-memory cap (~1–4 GiB observed) and that shows through the min(). The usage→quota GAP is
+  // therefore still a signal on modern Chrome (verified Chrome 150, headed + headless) — and it
+  // directly catches the lcnc-services #1946 regression where context.newPage() dropped an
+  // --incognito session's agent tab into the normal profile (a swapped tab reads a full 10 GiB
+  // gap). Honest blind spots, spelled out in the evidence rows: a high-RAM host can push the
+  // incognito cap past 10 GiB (reads "Likely off"), and a nearly-full small disk can drag a
+  // normal profile under it ("Likely on"). On <133 the old capped-quota bands still apply.
+  var GIB = 1073741824;
   function chromeMajor() {
     var m = (navigator.userAgent || "").match(/Chrome\/(\d+)/);
     return m ? Number(m[1]) : null;
@@ -230,26 +237,37 @@
     var el = probe("incognito");
     var quota = null, usage = null;
     try { var est = await navigator.storage.estimate(); quota = est.quota; usage = est.usage; } catch (e) { }
-    var gb = quota != null ? quota / 1073741824 : null;
+    var gb = quota != null ? quota / GIB : null;
     var major = chromeMajor();
-    REPORT.incognito = { quotaBytes: quota, usageBytes: usage, quotaGB: gb, chromeMajor: major };
+    var gap = quota != null ? quota - (usage || 0) : null;
+    var gapGB = gap != null ? gap / GIB : null;
+    REPORT.incognito = { quotaBytes: quota, usageBytes: usage, quotaGB: gb, gapGB: gapGB, chromeMajor: major };
 
-    var applied = null, verdict, state;
-    if (major != null && major >= 133) {
-      verdict = "No JS signal (133+)"; state = "drift";
-    } else if (gb != null) {
-      if (gb < 1) { applied = true; verdict = "Likely on"; state = "healthy"; }
-      else if (gb > 4) { applied = false; verdict = "Likely off"; state = "config"; }
-      else { verdict = "Ambiguous"; state = "drift"; }
-    } else { verdict = "Unavailable"; state = "drift"; }
+    var applied = null, verdict, state, why;
+    if (gb == null) {
+      verdict = "Unavailable"; state = "drift"; why = "storage.estimate() unavailable";
+    } else if (major != null && major >= 133) {
+      if (Math.abs(gap - 10 * GIB) <= 1048576) {
+        applied = false; verdict = "Likely off"; state = "config";
+        why = "gap = exactly 10 GiB — the hardcoded normal-profile signature (rare exception: an incognito cap ≥ 10 GiB on a high-RAM host — confirm via run UI/video)";
+      } else if (gap < 8 * GIB) {
+        applied = true; verdict = "Likely on"; state = "healthy";
+        why = "gap well under 10 GiB — a capped (incognito) context showing through Chrome's min(real, usage + 10 GiB) hardcode";
+      } else {
+        verdict = "Ambiguous"; state = "drift";
+        why = "gap just under 10 GiB — could be a cramped normal profile; compare an on/off pair";
+      }
+    } else if (gb < 1) { applied = true; verdict = "Likely on"; state = "healthy"; why = "capped quota → incognito (pre-133 bands)"; }
+    else if (gb > 4) { applied = false; verdict = "Likely off"; state = "config"; why = "large quota → normal profile (pre-133 bands)"; }
+    else { verdict = "Ambiguous"; state = "drift"; why = "mid-range quota → compare on/off (pre-133 bands)"; }
+
     REPORT.applied.incognito = applied;
     setState(el, state, verdict, "incognito");
     ev(el, "Chrome version", major != null ? String(major) : "unknown", "dim");
-    ev(el, "storage quota", gb != null ? gb.toFixed(2) + " GB" : "unavailable", gb != null ? (applied === true ? "warn" : "dim") : "dim");
+    ev(el, "storage quota", gb != null ? gb.toFixed(2) + " GB" : "unavailable", applied === true ? "warn" : "dim");
     ev(el, "storage usage", usage != null ? (usage / 1048576).toFixed(1) + " MB" : "—", "dim");
-    ev(el, "heuristic", major != null && major >= 133
-      ? "Chrome 133+ hardcodes quota to usage + 10 GiB in both modes — verify via the run's UI/video instead"
-      : (gb != null ? (gb < 1 ? "capped quota → incognito" : gb > 4 ? "large quota → normal profile" : "mid-range → compare on/off") : "n/a"), "dim");
+    ev(el, "quota − usage gap", gapGB != null ? gapGB.toFixed(2) + " GiB (a 133+ normal profile reads exactly 10.00)" : "—", applied === true ? "warn" : "dim");
+    ev(el, "heuristic", why, "dim");
     updateSummary();
   }
 
@@ -270,14 +288,19 @@
     ev(loc, "permissions.geolocation", g || "unsupported", permCls(g));
 
     // 4: Clipboard access — clipboard-WRITE is auto-allowed in Chrome regardless of the pref,
-    // so READ is the discriminator.
+    // so READ is the discriminator. And "granted" is NOT evidence the user flag was set:
+    // LCNC's default launch prefs already allow clipboard (pref = 1 + content-settings
+    // exception) on EVERY run, so allow == default — counting it made a zero-flag agentic
+    // run read "1 / 7 active". Only "denied" (flag Disabled, pref = 2) is a definitive
+    // user-flag signal; granted stays out of the active-toggles count (applied = null).
     var clip = probe("clipboard");
     var rd = states["clipboard-read"], wr = states["clipboard-write"];
-    if (rd === "granted") { setState(clip, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = true; }
+    if (rd === "granted") { setState(clip, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = null; }
     else if (rd === "denied") { setState(clip, "gone", "Blocked", "clipboard"); REPORT.applied.clipboard = false; }
     else { setState(clip, "drift", "Run probe", "clipboard"); REPORT.applied.clipboard = null; }
     ev(clip, "permissions.clipboard-read", rd || "unsupported", permCls(rd));
     ev(clip, "permissions.clipboard-write", wr || "unsupported (auto-allowed)", permCls(wr));
+    if (rd === "granted") ev(clip, "attribution", "allow is also the LCNC launch default — not counted as an active toggle", "dim");
 
     // 2: Camera & microphone (passive part; final decided by the probe)
     var cam = probe("camera");
@@ -442,7 +465,8 @@
     try {
       var text = await navigator.clipboard.readText();
       ev(el, "clipboard.readText", "ok (" + String(text).length + " chars)", "ok", "clipboard");
-      setState(el, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = true;
+      ev(el, "attribution", "allow is also the LCNC launch default — not counted as an active toggle", "dim", "clipboard");
+      setState(el, "healthy", "Allowed", "clipboard"); REPORT.applied.clipboard = null;
     } catch (e) {
       // Chrome throws NotAllowedError both for permission denial AND for an unfocused document —
       // only the former means the pref blocked us.
