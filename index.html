@@ -419,7 +419,7 @@ tbody tr:hover{background:var(--ink-2)}
   <section class="section reveal" aria-labelledby="caseH">
     <div class="section__head">
       <h2 id="caseH">Case matrix</h2>
-      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S34</span>
+      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S35</span>
     </div>
     <div class="filters" role="group" aria-label="Filter cases by behavior">
       <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases" aria-controls="caseBody">
@@ -432,7 +432,7 @@ tbody tr:hover{background:var(--ink-2)}
     <div class="tablewrap">
       <div class="tablescroll">
         <table>
-          <caption class="sr-only">34 self-healing test cases by target page and expected behavior</caption>
+          <caption class="sr-only">35 self-healing test cases by target page and expected behavior</caption>
           <thead><tr><th style="width:84px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
           <tbody id="caseBody"></tbody>
         </table>
@@ -463,6 +463,7 @@ var SCENARIOS = [
   {file:"validation.html", o:"mixed",  title:"Validation",        desc:"Drifts <code>#status-badge</code> to trigger a heal. <code>?wrong=1</code> flips the badge text and <code>?remove=1</code> drops the promo — mismatches that must never heal.", params:["?v=2","?wrong=1","?remove=1"]},
   {file:"frames.html",     o:"heals",  title:"iFrame + Shadow DOM",desc:"The same Checkout button, nested inside an iframe and a shadow root. The heal has to re-find it across both boundaries.", params:["?v=2"]},
   {file:"flow.html",       o:"heals",  title:"Multi-step flow",    desc:"Search → Add to cart → Checkout. The break drifts the middle step, forcing a replay to the first failing step.", params:["?v=2"]},
+  {file:"modal.html",      o:"app",    title:"Random popup",       desc:"A promo modal randomly interrupts the purchase mid-flow. The run must close it and continue — clicks behind it are blocked and logged.", params:["?popup=1","?popup=0"]},
   {file:"data.html",       o:"mixed",  title:"Producer / consumer",desc:"Producer shows a token to extract; the break drifts its id. The consumer verifies the captured value via <code>?use=</code>.", params:["?v=2","?use=HEAL-7421"]},
   {file:"email.html",      o:"mixed",  title:"Verification inbox", desc:"Drifts the verify-link and OTP ids so a heal must re-derive them. Asserting the wrong OTP is a mismatch that won't heal.", params:["?v=2"]},
   {file:"timing.html",     o:"app",    title:"Late element",       desc:"The button appears after <code>?delay=ms</code> (default 5000) — exercises intelligent wait. A huge delay is a genuine timeout, not a heal.", params:["?delay=5000"]},
@@ -507,7 +508,8 @@ var CASES = [
   ["S31","app",  "checkout.html",                                "Build with Visual Testing enabled → healing is disabled"],
   ["S32","app",  "checkout.html",                                "Cloud build: healed AI test → healed-execution details in XML report + status API"],
   ["S33","mixed","email.html",                                   "?v=2 drifts the verify link/OTP (heals); assert wrong OTP (no heal). Real OTP: temp-mail.org"],
-  ["S34","heals","checkout.html",                                "Cloud build: fragile test → 'healing in progress' banner, rerun with healed version, build duration"]
+  ["S34","heals","checkout.html",                                "Cloud build: fragile test → 'healing in progress' banner, rerun with healed version, build duration"],
+  ["S35","app",  "modal.html",                                   "Random promo popup mid-flow → close it and continue (warn-but-continue); a click behind it logs '⚠ blocked'. ?popup=1 forces, ?popup=0 suppresses"]
 ];
 
 var ST  = {heals:"healthy", noheal:"gone", mixed:"drift", app:"config"};
@@ -568,7 +570,7 @@ function overrideQuery(){
 (function(){
   var body = document.getElementById("caseBody");
   // \b (not ^): every occurrence in a multi-target cell gets linked, not just the first
-  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|data|email|cookie|download|upload|api)\.html(\?[^\s)]*)?|api\/todo\.json/g;
+  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|modal|data|email|cookie|download|upload|api)\.html(\?[^\s)]*)?|api\/todo\.json/g;
   function linkify(txt){ return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; }); }
   var rows = CASES.map(function(c){
     return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'
@@ -597,7 +599,7 @@ function overrideQuery(){
       if(vis) shown++;
     });
     document.getElementById("noRow").style.display = shown ? "none" : "";
-    document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S34" : shown+" of "+CASES.length;
+    document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S35" : shown+" of "+CASES.length;
   }
   chips.forEach(function(ch){
     ch.addEventListener("click", function(){

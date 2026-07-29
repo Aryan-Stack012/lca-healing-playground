@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random popup · LCA Playground</title>
+<meta name="description" content="A promo modal randomly interrupts the purchase mid-flow. The agent must close it and continue — clicks behind it are blocked and logged.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+/* page-local: the interrupting promo modal (kept out of playground.css — single-page concern) */
+.promo-backdrop{display:none; position:fixed; inset:0; z-index:200; background:rgba(4,8,16,.62); backdrop-filter:blur(3px); padding:var(--s5); align-items:center; justify-content:center}
+.promo-backdrop.is-open{display:flex}
+.promo{position:relative; width:min(400px,100%); background:var(--ink-2); border:1px solid var(--line-strong); border-radius:var(--r); box-shadow:var(--e2); padding:var(--s6)}
+.promo__eyebrow{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:var(--track-label); text-transform:uppercase; color:var(--drift)}
+.promo h2{font-family:var(--font-display); font-size:var(--fs-400); margin:var(--s2) 0 var(--s2)}
+.promo p{color:var(--muted); margin:0 0 var(--s4)}
+.promo__x{position:absolute; top:10px; right:10px; padding:4px 10px; background:transparent; border:none; color:var(--faint); font-size:var(--fs-300); line-height:1}
+.promo__x:hover{color:var(--text)}
+.promo__cta{display:flex; gap:var(--s3); flex-wrap:wrap}
+.promo__code{font-family:var(--font-mono); font-size:var(--fs-100); color:var(--healthy); margin:var(--s4) 0 0}
+.promo.shake{animation:promoShake .3s ease}
+@keyframes promoShake{25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+@media (prefers-reduced-motion: reduce){.promo.shake{animation:none}}
+#popup-log{margin:0}
+</style>
+</head>
+<body data-sub="modal.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Random popup interrupt</span>
+      <h1>Guided purchase, interrupted</h1>
+      <p class="page__note">Same Search → Add to cart → Checkout flow — but a promo popup may appear mid-flow (each trigger is a coin flip, so some runs never see it). The run should close it and continue; clicks behind it are blocked and logged. <code>?popup=1</code> forces it, <code>?popup=0</code> suppresses it.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Express purchase</h2><span class="badge badge--info" id="popupArm">popup: …</span><span class="badge badge--info" id="stepBadge" role="status" aria-live="polite">step 1 of 3</span></div>
+      <div class="surface__body">
+        <div class="stepper" aria-hidden="true">
+          <span class="step" data-step="0"><span class="step__n">1</span> Search</span><span class="step__sep"></span>
+          <span class="step" data-step="1"><span class="step__n">2</span> Add to cart</span><span class="step__sep"></span>
+          <span class="step" data-step="2"><span class="step__n">3</span> Checkout</span>
+        </div>
+
+        <div class="searchbar">
+          <input id="q" value="wireless headphones" aria-label="Search products" autocomplete="off">
+          <div id="s1"><button id="search" class="btn-primary">Search</button></div>
+        </div>
+
+        <div id="s2" style="margin-top:var(--s4)"></div>
+        <div id="s3" style="margin-top:var(--s4)"></div>
+        <div id="result" role="status" aria-live="polite" style="margin-top:var(--s4)"></div>
+
+        <hr class="divider">
+        <div class="meta" style="margin-bottom:6px">Popup events (assert on these)</div>
+        <pre id="popup-log" role="log" aria-live="polite">(none yet)</pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- the interruption: a full-viewport blocker; backdrop clicks do NOT close it -->
+  <div class="promo-backdrop" id="promo-backdrop">
+    <div class="promo" role="dialog" aria-modal="true" aria-labelledby="promoTitle" id="promo">
+      <button id="promo-close" class="promo__x" aria-label="Close offer">✕</button>
+      <span class="promo__eyebrow">limited-time offer</span>
+      <h2 id="promoTitle">Get 20% off your first order</h2>
+      <p>Fresh drops, member-only prices and a welcome code — none of it needed to finish your purchase.</p>
+      <div class="promo__cta">
+        <button id="promo-claim" class="btn-primary">Claim 20% off</button>
+        <button id="promo-dismiss" class="decoy">No thanks</button>
+      </div>
+      <p class="promo__code" id="promo-code" hidden>Use code <b>SAVE20</b> at checkout.</p>
+    </div>
+  </div>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  (function(){
+    var t0 = performance.now();
+    var logEl = document.getElementById('popup-log');
+    function logLine(msg){
+      var stamp = '[' + ((performance.now() - t0) / 1000).toFixed(1) + 's] ';
+      logEl.textContent = (logEl.textContent === '(none yet)' ? '' : logEl.textContent + '\n') + stamp + msg;
+    }
+
+    // arm resolution mirrors flag.js param semantics: URL wins, default is random
+    function popupMode(){
+      try{
+        var p = new URLSearchParams(location.search);
+        if(p.has('popup')){
+          var v = p.get('popup');
+          if(v === '0' || v === 'false' || v === 'off' || v === 'never') return 'never';
+          if(v === 'random') return 'random';
+          return 'always';
+        }
+      }catch(e){}
+      return 'random';
+    }
+    var mode = popupMode();
+    document.getElementById('popupArm').textContent = 'popup: ' + mode;
+
+    var backdrop = document.getElementById('promo-backdrop');
+    var promo = document.getElementById('promo');
+    var lastFocus = null;
+
+    function openPopup(where){
+      if(backdrop.classList.contains('is-open')) return;
+      backdrop.classList.add('is-open');
+      logLine('popup shown (' + where + ')');
+      lastFocus = document.activeElement;
+      document.getElementById('promo-close').focus();
+    }
+    function closePopup(how){
+      backdrop.classList.remove('is-open');
+      document.getElementById('promo-code').hidden = true;
+      logLine('popup dismissed (' + how + ')');
+      if(lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    function maybeInterrupt(where){
+      if(mode === 'never'){ logLine('popup skipped ' + where + ' (mode: never)'); return; }
+      if(mode === 'random' && Math.random() < 0.5){ logLine('popup skipped ' + where + ' (coin flip)'); return; }
+      setTimeout(function(){ openPopup(where); }, 700);
+    }
+
+    document.getElementById('promo-close').addEventListener('click', function(){ closePopup('close button'); });
+    document.getElementById('promo-dismiss').addEventListener('click', function(){ closePopup('No thanks'); });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && backdrop.classList.contains('is-open')) closePopup('Escape key');
+    });
+    // decoy: engaging with the ad leaves evidence and does NOT unblock the flow
+    document.getElementById('promo-claim').addEventListener('click', function(){
+      document.getElementById('promo-code').hidden = false;
+      logLine('clicked the promo CTA (decoy — popup stays open)');
+    });
+    // the TC-990 failure mode: a click aimed at the flow lands on the blocker instead
+    backdrop.addEventListener('click', function(e){
+      if(e.target !== backdrop) return;
+      logLine('⚠ blocked — click landed on the popup backdrop');
+      promo.classList.remove('shake'); void promo.offsetWidth; promo.classList.add('shake');
+    });
+
+    var steps = document.querySelectorAll('.step');
+    var badge = document.getElementById('stepBadge');
+    function setStep(active){
+      steps.forEach(function(s,i){
+        s.classList.remove('is-done','is-active');
+        if(i < active) s.classList.add('is-done');
+        else if(i === active) s.classList.add('is-active');
+      });
+      badge.textContent = active >= 3 ? 'complete' : 'step ' + (active + 1) + ' of 3';
+    }
+    setStep(0);
+
+    var search = document.getElementById('search'), q = document.getElementById('q');
+
+    function doSearch(){
+      document.getElementById('s3').innerHTML = '';
+      document.getElementById('result').textContent = '';
+      document.getElementById('s2').innerHTML =
+        '<p class="flowline">1 result for &ldquo;' + (q.value || 'wireless headphones') + '&rdquo;</p>' +
+        '<div class="item" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s3);margin-bottom:var(--s3)">' +
+          '<span class="thumb">AH</span>' +
+          '<div><div class="item__name">Aurora Wireless Headphones</div><div class="item__meta">In stock · ships free</div></div>' +
+          '<span class="item__price">$79.00</span>' +
+        '</div>' +
+        '<button id="add-to-cart" class="btn-primary" aria-label="Add to cart">Add to cart</button>';
+      setStep(1);
+      maybeInterrupt('after search');
+
+      document.getElementById('add-to-cart').addEventListener('click', function(){
+        document.getElementById('s3').innerHTML =
+          '<p class="flowline">Cart · 1 item · $79.00</p>' +
+          '<button id="checkout" class="btn-primary" aria-label="Checkout">Checkout</button>';
+        setStep(2);
+        maybeInterrupt('after add to cart');
+
+        document.getElementById('checkout').addEventListener('click', function(){
+          var r = document.getElementById('result');
+          r.textContent = '✅ Order placed';
+          r.className = 'is-ok';
+          setStep(3);
+        });
+      });
+    }
+
+    search.addEventListener('click', doSearch);
+    q.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); doSearch(); } });
+  })();
+  </script>
+</body>
+</html>
