@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser configuration · LCA Playground</title>
+<meta name="description" content="Echoes what the run config actually delivered — request headers, cookies, local storage, basic-auth probe, and the IP + country this session egresses from.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+/* page-local: key/value readout rows + header grid (single-page concern, kept out of playground.css) */
+.kv{display:flex; gap:var(--s4); padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:var(--fs-100); align-items:baseline}
+.kv:last-child{border-bottom:none}
+.kv__k{font-family:var(--font-mono); color:var(--faint); flex:0 0 150px; overflow-wrap:anywhere}
+.kv__v{font-family:var(--font-mono); color:var(--text); overflow-wrap:anywhere; min-width:0}
+.kv__v .tag{margin-left:var(--s2)}
+.geo-ip{font-family:var(--font-mono); font-size:var(--fs-500); font-weight:700; letter-spacing:var(--track-tight)}
+.geo-where{font-family:var(--font-display); font-size:var(--fs-300); color:var(--muted); margin-top:2px}
+.tag{display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:var(--track-micro); text-transform:uppercase; padding:1px 7px; border-radius:var(--r-pill); border:1px solid color-mix(in srgb,var(--drift) 40%,transparent); color:var(--drift); background:var(--drift-dim); vertical-align:middle}
+.hint{color:var(--faint); font-size:var(--fs-75); margin:var(--s3) 0 0}
+.panel-actions{margin-top:var(--s4)}
+pre{overflow-x:auto}
+</style>
+</head>
+<body data-sub="config.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Browser configuration</span>
+      <h1>Run-config inspector</h1>
+      <p class="page__note">Point a run at this page to verify the Advanced-options config actually reached the browser: injected headers, cookies, local storage, a basic-auth probe — plus the IP and country this session egresses from (for the IP-geolocation toggle). Everything auto-runs on load; assert on the live text or the JSON snapshot at the bottom.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">IP geolocation — where this session comes from</h2><span class="badge badge--info" id="geoBadge" role="status">checking…</span></div>
+      <div class="surface__body">
+        <div class="geo-ip" id="geo-ip">…</div>
+        <div class="geo-where" id="geo-where">looking up the egress IP…</div>
+        <div style="margin-top:var(--s4)">
+          <div class="kv"><span class="kv__k">country</span><span class="kv__v" id="geo-country">…</span></div>
+          <div class="kv"><span class="kv__k">region / city</span><span class="kv__v" id="geo-city">…</span></div>
+          <div class="kv"><span class="kv__k">network / isp</span><span class="kv__v" id="geo-org">…</span></div>
+          <div class="kv"><span class="kv__k">resolved via</span><span class="kv__v" id="geo-provider">…</span></div>
+        </div>
+        <p class="hint">Toggle “Enable IP geolocation” in the run config and pick a country — this readout should move to that country's IP pool. Providers tried in order: ipwho.is → ipapi.co → Cloudflare trace.</p>
+      </div>
+    </section>
+
+    <section class="surface" style="margin-top:var(--s5)">
+      <div class="surface__head"><h2 class="surface__title">Request headers</h2><span class="badge badge--info" id="hdrBadge" role="status">checking…</span></div>
+      <div class="surface__body">
+        <div id="hdr-rows"><div class="kv"><span class="kv__k">…</span><span class="kv__v">fetching an echo of this browser's headers…</span></div></div>
+        <p class="hint">Cross-origin echo of what this browser sends (via <span id="hdr-provider">…</span>). Headers added in the run config are injected browser-wide, so they appear here tagged <span class="tag">injected</span> (= not in the standard browser set).</p>
+      </div>
+    </section>
+
+    <section class="surface" style="margin-top:var(--s5)">
+      <div class="surface__head"><h2 class="surface__title">Cookies</h2><span class="badge badge--info" id="ckBadge" role="status">reading…</span></div>
+      <div class="surface__body">
+        <div id="ck-rows"></div>
+        <p class="hint">Cookies visible to this origin (JS view). HttpOnly cookies never show up in <code>document.cookie</code> — set them non-HttpOnly to verify here. Seed example: <code>document.cookie = 'session=abc; path=/'</code></p>
+      </div>
+    </section>
+
+    <section class="surface" style="margin-top:var(--s5)">
+      <div class="surface__head"><h2 class="surface__title">Local storage</h2><span class="badge badge--info" id="lsBadge" role="status">reading…</span></div>
+      <div class="surface__body">
+        <div id="ls-rows"></div>
+        <p class="hint">Every key this origin holds. Seed example: <code>localStorage.setItem('demoConfig', 'region=us-east')</code></p>
+      </div>
+    </section>
+
+    <section class="surface" style="margin-top:var(--s5)">
+      <div class="surface__head"><h2 class="surface__title">Basic authentication</h2><span class="badge badge--info" id="baBadge" role="status">probing…</span></div>
+      <div class="surface__body">
+        <div class="kv"><span class="kv__k">probe target</span><span class="kv__v">httpbin.org/basic-auth/admin/admin</span></div>
+        <div class="kv"><span class="kv__k">result</span><span class="kv__v" id="ba-result">…</span></div>
+        <p class="hint">Without credentials this probe is rejected (401 / blocked). If the run injects basic-auth browser-wide, it returns <b>200 authenticated</b>. Config scoped to the main URL only? Use <a href="https://the-internet.herokuapp.com/basic_auth" rel="noopener">the-internet/basic_auth</a> (admin/admin) as the Explore URL instead.</p>
+      </div>
+    </section>
+
+    <section class="surface" style="margin-top:var(--s5)">
+      <div class="surface__head"><h2 class="surface__title">Machine-readable snapshot</h2><span class="badge badge--info">assert on this</span></div>
+      <div class="surface__body">
+        <pre id="cfg-snapshot">{ "status": "collecting…" }</pre>
+        <div class="panel-actions"><button id="rerun" class="btn-primary">Re-run all checks</button></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  (function(){
+    var snapshot = {geo:null, headers:null, injectedHeaders:null, cookies:null, localStorage:null, basicAuthProbe:null};
+    // every external call gets a hard deadline so a cold echo service can't hang a panel
+    function get(url){ return fetch(url, {signal: (AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined)}); }
+    function esc(s){ var d = document.createElement('span'); d.textContent = String(s); return d.innerHTML; }
+    function badge(id, cls, txt){ var b = document.getElementById(id); b.className = 'badge ' + cls; b.textContent = txt; }
+    function paintSnapshot(){ document.getElementById('cfg-snapshot').textContent = JSON.stringify(snapshot, null, 2); }
+    function flagEmoji(code){
+      if(!code || code.length !== 2 || !/^[A-Za-z]+$/.test(code)) return '';
+      return String.fromCodePoint(127397 + code.toUpperCase().charCodeAt(0), 127397 + code.toUpperCase().charCodeAt(1));
+    }
+
+    /* ---- IP geolocation: provider chain, first sane answer wins ---- */
+    async function fetchGeo(){
+      try{
+        var j = await (await get('https://ipwho.is/')).json();
+        if(j && j.success !== false && j.ip) return {ip:j.ip, country:j.country||'', code:j.country_code||'', city:[j.region,j.city].filter(Boolean).join(' / '), org:(j.connection && (j.connection.isp||j.connection.org))||'', provider:'ipwho.is'};
+      }catch(e){}
+      try{
+        var k = await (await get('https://ipapi.co/json/')).json();
+        if(k && k.ip) return {ip:k.ip, country:k.country_name||'', code:k.country_code||'', city:[k.region,k.city].filter(Boolean).join(' / '), org:k.org||'', provider:'ipapi.co'};
+      }catch(e){}
+      try{
+        var t = await (await get('https://www.cloudflare.com/cdn-cgi/trace')).text();
+        var m = {}; t.trim().split('\n').forEach(function(l){ var i = l.indexOf('='); if(i > 0) m[l.slice(0,i)] = l.slice(i+1); });
+        if(m.ip) return {ip:m.ip, country:m.loc||'', code:m.loc||'', city:'', org:'', provider:'cloudflare trace'};
+      }catch(e){}
+      return null;
+    }
+    async function runGeo(){
+      badge('geoBadge','badge--info','checking…');
+      var g = await fetchGeo();
+      if(!g){
+        badge('geoBadge','badge--err','unreachable');
+        document.getElementById('geo-ip').textContent = 'lookup failed';
+        document.getElementById('geo-where').textContent = 'all geo providers unreachable from this network';
+        snapshot.geo = {error:'all providers unreachable'};
+        return;
+      }
+      document.getElementById('geo-ip').textContent = g.ip;
+      document.getElementById('geo-where').textContent = (flagEmoji(g.code) + ' accessed from ' + (g.country || g.code || 'unknown')).trim();
+      document.getElementById('geo-country').textContent = (g.country || '—') + (g.code ? ' (' + g.code + ')' : '');
+      document.getElementById('geo-city').textContent = g.city || '—';
+      document.getElementById('geo-org').textContent = g.org || '—';
+      document.getElementById('geo-provider').textContent = g.provider;
+      badge('geoBadge','badge--ok', g.code ? g.code.toUpperCase() : 'ok');
+      snapshot.geo = g;
+      paintSnapshot();
+    }
+
+    /* ---- headers: echo what this browser sends; tag anything outside the standard set ---- */
+    var STANDARD = ['accept','accept-encoding','accept-language','cache-control','connection','content-length','content-type','cookie','dnt','host','origin','pragma','priority','referer','sec-ch-ua','sec-ch-ua-mobile','sec-ch-ua-platform','sec-fetch-dest','sec-fetch-mode','sec-fetch-site','sec-fetch-user','sec-gpc','upgrade-insecure-requests','user-agent','via','x-amzn-trace-id','postman-token','x-forwarded-for','x-forwarded-proto','x-forwarded-port','x-request-start','cf-connecting-ip','cf-ipcountry','cf-ray','cf-visitor','cdn-loop','x-real-ip'];
+    // infra hops (fly.io, vercel, cloudflare…) add their own headers — never tag those as injected
+    var INFRA = /^(sec-|cf-|fly-|x-forwarded-|x-vercel-|x-nf-|x-envoy-|x-real-|via$|cdn-loop$)/i;
+    async function fetchHeaders(){
+      var eps = [['https://httpbingo.org/headers','httpbingo.org'],['https://echo.hoppscotch.io/','echo.hoppscotch.io'],['https://httpbin.org/headers','httpbin.org']];
+      for(var i = 0; i < eps.length; i++){
+        try{
+          var j = await (await get(eps[i][0])).json();
+          if(j && j.headers){
+            var h = {};
+            Object.keys(j.headers).forEach(function(k){ var v = j.headers[k]; h[k] = Array.isArray(v) ? v.join(', ') : String(v); });
+            return {headers:h, provider:eps[i][1]};
+          }
+        }catch(e){}
+      }
+      return null;
+    }
+    async function runHeaders(){
+      badge('hdrBadge','badge--info','checking…');
+      var h = await fetchHeaders();
+      var rows = document.getElementById('hdr-rows');
+      if(!h){
+        badge('hdrBadge','badge--err','unreachable');
+        rows.innerHTML = '<div class="kv"><span class="kv__k">error</span><span class="kv__v">header echo endpoints unreachable</span></div>';
+        snapshot.headers = {error:'echo endpoints unreachable'};
+        return;
+      }
+      var names = Object.keys(h.headers).sort(function(a,b){ return a.toLowerCase() < b.toLowerCase() ? -1 : 1; });
+      var injected = names.filter(function(n){ return STANDARD.indexOf(n.toLowerCase()) === -1 && !INFRA.test(n); });
+      rows.innerHTML = names.map(function(n){
+        var extra = injected.indexOf(n) > -1 ? ' <span class="tag">injected</span>' : '';
+        return '<div class="kv"><span class="kv__k">' + esc(n) + '</span><span class="kv__v">' + esc(h.headers[n]) + extra + '</span></div>';
+      }).join('');
+      document.getElementById('hdr-provider').textContent = h.provider;
+      badge('hdrBadge', injected.length ? 'badge--warn' : 'badge--ok', injected.length ? injected.length + ' injected' : 'standard only');
+      snapshot.headers = h.headers;
+      snapshot.injectedHeaders = injected;
+      paintSnapshot();
+    }
+
+    /* ---- cookies: the JS-visible jar for this origin ---- */
+    function runCookies(){
+      var raw = document.cookie;
+      var rows = document.getElementById('ck-rows');
+      if(!raw){
+        rows.innerHTML = '<div class="kv"><span class="kv__k">(none)</span><span class="kv__v">no JS-visible cookies on this origin</span></div>';
+        badge('ckBadge','badge--info','0 cookies');
+        snapshot.cookies = {};
+        return;
+      }
+      var jar = {};
+      raw.split('; ').forEach(function(c){ var i = c.indexOf('='); jar[i > -1 ? c.slice(0,i) : c] = i > -1 ? c.slice(i+1) : ''; });
+      rows.innerHTML = Object.keys(jar).map(function(k){
+        return '<div class="kv"><span class="kv__k">' + esc(k) + '</span><span class="kv__v">' + esc(jar[k]) + '</span></div>';
+      }).join('');
+      badge('ckBadge','badge--ok', Object.keys(jar).length + ' cookie' + (Object.keys(jar).length === 1 ? '' : 's'));
+      snapshot.cookies = jar;
+    }
+
+    /* ---- local storage: every key on this origin ---- */
+    function runStorage(){
+      var rows = document.getElementById('ls-rows');
+      try{
+        if(!localStorage.length){
+          rows.innerHTML = '<div class="kv"><span class="kv__k">(empty)</span><span class="kv__v">no localStorage keys on this origin</span></div>';
+          badge('lsBadge','badge--info','0 keys');
+          snapshot.localStorage = {};
+          return;
+        }
+        var store = {};
+        for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
+        rows.innerHTML = Object.keys(store).sort().map(function(k){
+          return '<div class="kv"><span class="kv__k">' + esc(k) + '</span><span class="kv__v">' + esc(store[k]) + '</span></div>';
+        }).join('');
+        badge('lsBadge','badge--ok', Object.keys(store).length + ' key' + (Object.keys(store).length === 1 ? '' : 's'));
+        snapshot.localStorage = store;
+      }catch(e){
+        rows.innerHTML = '<div class="kv"><span class="kv__k">error</span><span class="kv__v">storage access blocked in this browser</span></div>';
+        badge('lsBadge','badge--err','blocked');
+        snapshot.localStorage = {error:'blocked'};
+      }
+    }
+
+    /* ---- basic auth: 200 only if the browser injects credentials on the challenge ---- */
+    async function runAuth(){
+      badge('baBadge','badge--info','probing…');
+      var out = document.getElementById('ba-result');
+      try{
+        var r = await get('https://httpbin.org/basic-auth/admin/admin');
+        if(r.status === 200){ out.textContent = '200 — authenticated (credentials were injected)'; badge('baBadge','badge--ok','200 auth'); snapshot.basicAuthProbe = 200; }
+        else{ out.textContent = r.status + ' — not authenticated (expected without configured credentials)'; badge('baBadge','badge--warn', String(r.status)); snapshot.basicAuthProbe = r.status; }
+      }catch(e){
+        out.textContent = 'request blocked — the 401 challenge was not answered (expected without configured credentials)';
+        badge('baBadge','badge--warn','no auth');
+        snapshot.basicAuthProbe = 'blocked';
+      }
+      paintSnapshot();
+    }
+
+    async function runAll(){
+      snapshot = {geo:null, headers:null, injectedHeaders:null, cookies:null, localStorage:null, basicAuthProbe:null};
+      runCookies(); runStorage(); paintSnapshot();
+      await Promise.all([runGeo(), runHeaders(), runAuth()]);
+      paintSnapshot();
+    }
+    document.getElementById('rerun').addEventListener('click', runAll);
+    runAll();
+  })();
+  </script>
+</body>
+</html>
