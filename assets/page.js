@@ -1,5 +1,17 @@
 // Shared chrome for every target page: skip link, sticky top bar (brand → hub),
 // and a live break-flag chip wired to the same resolver the page uses (flag.js).
+
+// Backend: register the service-worker API (sw.js at site root) from the
+// older pages and the hub too, so api/v1/ is already live by the time a
+// run reaches the tab/window/console surfaces.
+(function(){
+  try{
+    if(!('serviceWorker' in navigator) || !document.currentScript) return;
+    var sw = new URL('../sw.js', document.currentScript.src);
+    if(sw.origin === location.origin) navigator.serviceWorker.register(sw.pathname).catch(function(){});
+  }catch(e){}
+})();
+
 (function(){
   if(typeof lcaResolve !== 'function') return;
   var WORD = { healthy:'healthy', drift:'drifted', gone:'unhealable' };

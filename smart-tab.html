@@ -35,8 +35,8 @@
         <div id="scoreboard"></div>
       </div>
       <div class="surface__foot">
-        <p class="meta">Weights: full path <strong>+10</strong> · path segments <strong>(matched ÷ recorded) × 10</strong> · query key+value <strong>+5</strong> · query key only <strong>+2</strong> · SPA fragment <strong>+6</strong> · anchor fragment <strong>+3</strong> · exact title <strong>+2</strong>. Domain is captured but never scored.</p>
-        <p class="meta">Two things this oracle assumes, because the spec does not pin them down — segments are matched order-independently, and the denominator is the <em>recorded</em> segment count. If the product disagrees, that gap is a finding, not a bug in this page.</p>
+        <p class="meta">Weights: full path <strong>+10</strong> · path segments <strong>(matched ÷ recorded) × 10</strong> · query key+value <strong>+5</strong> · query key only <strong>+2</strong> · SPA fragment <strong>+6</strong> · anchor fragment <strong>+3</strong> · exact title <strong>+2</strong>. Domain is captured but never scored. Fragment points require the <em>recorded</em> tab to carry a fragment — the baseline here doesn't, so group E is classification-only.</p>
+        <p class="meta">Totals include the deployment prefix (<code>/lca-healing-playground/</code>) as a real path segment, because that is the URL the product actually sees — the sibling path scores 17.5 deployed vs 16.67 on a bare local server. Two things this oracle assumes, because the spec does not pin them down: segments match order-independently, and the denominator is the <em>recorded</em> segment count. If the product disagrees, that gap is a finding, not a bug in this page.</p>
       </div>
     </section>
 
@@ -102,22 +102,22 @@
         {act:'open', label:'Same page + utm / gclid / fbclid', url:BASE_URL+TRACK, note:'Must score exactly the same as the clean URL. A URL-equality match fails here.'}
       ]},
       {group:'C · Path scoring', items:[
-        {act:'open', label:'/cart/checkout — exact path',        url:'tabs/cart/checkout.html?order=A1&user=ABC',       note:'Full path match → +10, plus every segment.'},
-        {act:'open', label:'/account/checkout — sibling path',   url:'tabs/account/checkout.html?order=A1&user=ABC',    note:'Shares the leaf only. No full-path points; partial segments.'},
-        {act:'open', label:'/store/cart/checkout — superset path', url:'tabs/store/cart/checkout.html?order=A1&user=ABC', note:'Contains both cart and checkout — the highest partial score, and still must lose to the exact path.'}
+        {act:'open', label:'/cart/checkout — exact path',        url:'tabs/cart/checkout.html?order=A1&user=ABC',       note:'Full path match → +10, plus every segment. 32 total on the deployed site.'},
+        {act:'open', label:'/account/checkout — sibling path',   url:'tabs/account/checkout.html?order=A1&user=ABC',    note:'No full-path points; shares every segment except cart → 7.5 of 10 partial, 17.5 total deployed.'},
+        {act:'open', label:'/store/cart/checkout — superset path', url:'tabs/store/cart/checkout.html?order=A1&user=ABC', note:'Contains every recorded segment (partial +10) and still must lose to the exact path — 20 vs 32 deployed.'}
       ]},
       {group:'D · Query-param scoring', items:[
         {act:'open', label:'order=A1 & user=ABC — both match', url:'tabs/cart/checkout.html?order=A1&user=ABC', note:'Two key+value hits → +5 each.'},
         {act:'open', label:'order=A1 & user=ZZZ — one value differs', url:'tabs/cart/checkout.html?order=A1&user=ZZZ', note:'+5 for order, +2 for the user key only.'},
         {act:'open', label:'order=A1 only — one param absent', url:'tabs/cart/checkout.html?order=A1', note:'+5 for order, nothing for the missing user.'}
       ]},
-      {group:'E · Fragment scoring', items:[
-        {act:'open', label:'SPA route #/dashboard/home', url:'tabs/cart/checkout.html?order=A1&user=ABC#/dashboard/home', note:'Leading slash → treated as a route, weight 6.'},
-        {act:'open', label:'Anchor #authentication',     url:'tabs/cart/checkout.html?order=A1&user=ABC#authentication',  note:'Plain anchor, weight 3.'}
+      {group:'E · Fragment classification', items:[
+        {act:'open', label:'SPA route #/dashboard/home', url:'tabs/cart/checkout.html?order=A1&user=ABC#/dashboard/home', note:'The identity card inside classifies it: leading slash → SPA route, weight 6. The oracle baseline records no fragment, so no fragment points appear on the scoreboard — record a step on THIS tab in the product, then replay against the anchor sibling to compare weights.'},
+        {act:'open', label:'Anchor #authentication',     url:'tabs/cart/checkout.html?order=A1&user=ABC#authentication',  note:'Classified as a plain anchor, weight 3. Same caveat: the fragment term only scores when the recorded tab carried a fragment.'}
       ]},
       {group:'F · Title as tiebreaker', items:[
         {act:'open', label:'Same path, matching title',  url:'tabs/cart/checkout.html?order=A1&user=ABC&tab=A', note:'Title matches the recording → +2.'},
-        {act:'open', label:'Same path, different title', url:'tabs/cart/checkout.html?order=A1&user=ABC&tab=Z', note:'Title differs → no +2. The gap also includes the tab param, so read the breakdown, not just the total.'}
+        {act:'open', label:'Same path, different title', url:'tabs/cart/checkout.html?order=A1&user=ABC&tab=Z', note:'Title differs → no +2. The tab param is extra on both candidates and extras are never scored, so the gap is exactly the title term.'}
       ]},
       {group:'G · Properties that move after load', items:[
         {act:'open', label:'Title mutates 2.5 s after load', url:'tabs/cart/checkout.html?order=A1&user=ABC&titledrift=2500', note:'Capture the properties too late and the title no longer matches. Watch the score drop live.'},
@@ -125,6 +125,9 @@
       ]},
       {group:'H · Twins', items:[
         {act:'open', label:'Identical twin of the baseline', url:BASE_URL, note:'Same path, same query, same title. Scores tie — only the recorded index can break it.'}
+      ]},
+      {group:'I · Spec edge — the devtools exclusion', items:[
+        {act:'open', label:"Open a tab whose URL contains 'devtools'", url:'tabs/target.html?tab=DT&panel=devtools-elements', note:'The spec excludes tabs whose URL includes "devtools" (the a11y-scanner tabs) when several match. A naive substring filter makes this perfectly legitimate app tab unfindable — if the product cannot target it, that is a finding.'}
       ]}
     ];
 
@@ -133,8 +136,10 @@
       return '<div class="lset">' +
         '<h3 class="lset__head">' + LCA.esc(set.group) + '</h3>' +
         '<div class="grid2">' + set.items.map(function(it, ii){
+          /* the pair launcher depends on the flag — disabled until it resolves */
           return '<div class="stack">' +
-            '<button data-act="' + it.act + '" data-url="' + LCA.esc(it.url || '') + '" data-si="' + si + '-' + ii + '">' +
+            '<button data-act="' + it.act + '" data-url="' + LCA.esc(it.url || '') + '" data-si="' + si + '-' + ii + '"' +
+            (it.act === 'pair' ? ' disabled' : '') + '>' +
             LCA.esc(it.label) + '</button>' +
             '<span class="meta">' + LCA.esc(it.note) + '</span></div>';
         }).join('') + '</div></div>';
@@ -197,6 +202,15 @@
 
     LCA.on(function(msg){
       if(msg.type === 'hello'){
+        /* candidates = tabs THIS page opened; re-announces update in place */
+        if(msg.openerToken !== LCA.token) return;
+        for(var i = 0; i < candidates.length; i++){
+          if(candidates[i].id === msg.id){
+            candidates[i].url = msg.url; candidates[i].title = msg.title; candidates[i].closed = false;
+            rescore();
+            return;
+          }
+        }
         candidates.push({id: msg.id, url: msg.url, title: msg.title, closed: false});
         rescore();
       }else if(msg.type === 'title'){
@@ -208,8 +222,47 @@
       }
     });
 
+    /* ---------------- launchers bind immediately ----------------
+       Only the pair button waits for the flag (it stays disabled until
+       then); binding everything after the async resolve made a fast
+       click on ANY launcher a silent no-op — record/replay skew. */
+    var flagState = null;
+    lmount.addEventListener('click', function(ev){
+      var btn = ev.target.closest('button[data-act]');
+      if(!btn) return;
+
+      if(btn.dataset.act === 'open'){
+        var rec = LCA.open(btn.dataset.url, '_blank');
+        say(rec.blocked ? 'window.open returned null — the browser blocked it.' : ('Opened ' + btn.dataset.url), rec.blocked);
+        return;
+      }
+
+      if(!flagState) return;   // pair is disabled until the flag resolves
+      /* Both opens stay in this handler — a deferred window.open loses the
+         user gesture entirely. Two popups per gesture needs popup blocking
+         off (true on BrowserStack Automate / LCNC launch paths); a default
+         local Chrome may block the second and the registry will say so. */
+      var cart = 'tabs/cart/checkout.html?order=A1&user=ABC';
+      var acct = 'tabs/account/checkout.html?order=A1&user=ABC';
+      if(flagState === 'healthy'){
+        var a1 = LCA.open(cart, '_blank'), a2 = LCA.open(acct, '_blank');
+        say((a1.blocked || a2.blocked)
+          ? 'One of the pair was popup-blocked — allow popups for this site.'
+          : 'Opened /cart/checkout at index 1, /account/checkout at index 2.', a1.blocked || a2.blocked);
+      }else if(flagState === 'drift'){
+        var b1 = LCA.open(acct, '_blank'), b2 = LCA.open(cart, '_blank');
+        say((b1.blocked || b2.blocked)
+          ? 'One of the pair was popup-blocked — allow popups for this site.'
+          : 'Opened /account/checkout at index 1, /cart/checkout at index 2 — the recorded order is inverted.', true);
+      }else{
+        var c1 = LCA.open(acct, '_blank');
+        say(c1.blocked ? 'The tab was popup-blocked.' : 'Opened /account/checkout only. The recorded /cart/checkout tab is absent.', true);
+      }
+    });
+
     /* ---------------- the break: open order ---------------- */
     lcaResolve().then(function(r){
+      flagState = r.state;
       var note = document.getElementById('flagNote');
       var copy = {
         healthy: 'Flag healthy — the pair opens /cart/checkout first, then /account/checkout.',
@@ -218,32 +271,8 @@
       };
       note.textContent = copy[r.state] + ' (source: ' + r.source + ')';
       note.className = 'meta ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad');
-
-      lmount.addEventListener('click', function(ev){
-        var btn = ev.target.closest('button[data-act]');
-        if(!btn) return;
-
-        if(btn.dataset.act === 'open'){
-          var rec = LCA.open(btn.dataset.url, '_blank');
-          say(rec.blocked ? 'window.open returned null — the browser blocked it.' : ('Opened ' + btn.dataset.url), rec.blocked);
-          return;
-        }
-
-        /* Both opens stay in this handler — a deferred window.open loses
-           the user gesture and gets popup-blocked. */
-        var cart = 'tabs/cart/checkout.html?order=A1&user=ABC';
-        var acct = 'tabs/account/checkout.html?order=A1&user=ABC';
-        if(r.state === 'healthy'){
-          LCA.open(cart, '_blank'); LCA.open(acct, '_blank');
-          say('Opened /cart/checkout at index 1, /account/checkout at index 2.');
-        }else if(r.state === 'drift'){
-          LCA.open(acct, '_blank'); LCA.open(cart, '_blank');
-          say('Opened /account/checkout at index 1, /cart/checkout at index 2 — the recorded order is inverted.', true);
-        }else{
-          LCA.open(acct, '_blank');
-          say('Opened /account/checkout only. The recorded /cart/checkout tab is absent.', true);
-        }
-      });
+      var pairBtn = lmount.querySelector('button[data-act="pair"]');
+      if(pairBtn) pairBtn.disabled = false;
     });
   })();
   </script>

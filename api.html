@@ -40,9 +40,26 @@
     </section>
 
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Failure legs</h2><span class="badge badge--err">never healed</span></div>
+      <div class="surface__head"><h2 class="surface__title">Failure legs · local backend</h2><span class="badge badge--err">never healed</span></div>
       <div class="surface__body stack">
-        <p class="meta" style="margin:0">External calls to httpbin.org — fired on click only. An HTTP error status is an assertion failure, not a broken locator: no heal may fire.</p>
+        <p class="meta" style="margin:0">Same-origin calls served by the in-browser backend (<code>sw.js</code> → <code>api/v1/status/*</code>, <code>api/v1/latency/*</code>) — deterministic, no external dependency, safe in CI. An HTTP error status is an assertion failure, not a broken locator: no heal may fire.</p>
+        <div class="inline">
+          <button id="lhit401" class="decoy">GET api/v1/status/401</button>
+          <button id="lhit500" class="decoy">GET api/v1/status/500</button>
+          <button id="lhitSlow" class="decoy">GET api/v1/latency/2500</button>
+          <span id="localres" role="status" aria-live="polite" class="meta"></span>
+        </div>
+        <div class="inline">
+          <button id="lhitPost">POST api/v1/tickets</button>
+          <span id="postres" role="status" aria-live="polite" class="meta"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Failure legs · external</h2><span class="badge badge--err">never healed</span></div>
+      <div class="surface__body stack">
+        <p class="meta" style="margin:0">External calls to httpbin.org — fired on click only. Kept for the cross-origin leg; prefer the local legs above in CI (httpbin flakes behind egress filtering).</p>
         <div class="inline">
           <button id="hit401" class="decoy">GET /status/401</button>
           <button id="hit500" class="decoy">GET /status/500</button>
@@ -84,6 +101,35 @@
   }
   document.getElementById('hit401').addEventListener('click',function(){hitExternal(401);});
   document.getElementById('hit500').addEventListener('click',function(){hitExternal(500);});
+
+  /* local backend legs — served by the service worker, deterministic */
+  function hitLocal(path){
+    var out=document.getElementById('localres');
+    out.textContent='calling '+path+'…'; out.className='meta';
+    var t0=performance.now();
+    fetch(path,{cache:'no-store'})
+      .then(function(res){
+        var ms=Math.round(performance.now()-t0);
+        var via=(res.headers.get('x-lca-backend')||'').indexOf('service-worker')>-1?'backend':'static';
+        out.textContent=path+' → '+res.status+' in '+ms+' ms ('+via+')';
+        out.className=res.ok?'is-ok':'is-bad';
+      })
+      .catch(function(){ out.textContent=path+' unreachable — service worker not yet active, reload once'; out.className='is-bad'; });
+  }
+  document.getElementById('lhit401').addEventListener('click',function(){hitLocal('api/v1/status/401');});
+  document.getElementById('lhit500').addEventListener('click',function(){hitLocal('api/v1/status/500');});
+  document.getElementById('lhitSlow').addEventListener('click',function(){hitLocal('api/v1/latency/2500');});
+  document.getElementById('lhitPost').addEventListener('click',function(){
+    var out=document.getElementById('postres');
+    out.textContent='posting…'; out.className='meta';
+    fetch('api/v1/tickets',{method:'POST'})
+      .then(function(res){
+        if(res.status===405||((res.headers.get('content-type')||'').indexOf('json')<0)) throw new Error('no backend');
+        return res.json();
+      })
+      .then(function(j){ out.textContent='201 · issued '+j.ticket+' (count '+j.count+')'; out.className='is-ok'; })
+      .catch(function(){ out.textContent='POST needs the in-browser backend — service worker not yet active, reload once'; out.className='is-bad'; });
+  });
   </script>
 </body>
 </html>

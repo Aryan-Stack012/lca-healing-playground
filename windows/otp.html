@@ -45,24 +45,50 @@
   (function(){
     var CODE = '902137';
     var order = (new URLSearchParams(location.search)).get('order') || 'INV-4417';
-    var id = 'otp-' + Date.now().toString(36);
     document.title = 'SecurePay · OTP ' + order;
 
-    LCA.post({type:'hello', id:id, label:'OTP', url:location.href, title:document.title});
-    window.addEventListener('pagehide', function(){ LCA.post({type:'bye', id:id, label:'OTP'}); });
+    /* persistent per-window channel id, keyed by label so the inherited
+       sessionStorage copy from the parent pay window cannot collide */
+    var id = null;
+    try { id = sessionStorage.getItem('lcaChanId:OTP'); } catch(e){}
+    if(!id){
+      id = 'otp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+      try { sessionStorage.setItem('lcaChanId:OTP', id); } catch(e){}
+    }
 
+    var openerToken = null;
+    try { openerToken = window.opener && window.opener.LCA ? window.opener.LCA.token : null; } catch(e){}
+    var winName = '';
+    try { winName = window.name || ''; } catch(e){}
+    function announce(msg){ msg.openerToken = openerToken; msg.winName = winName; LCA.post(msg); }
+
+    announce({type:'hello', id:id, label:'OTP', url:location.href, title:document.title});
+    window.addEventListener('pagehide', function(){ announce({type:'bye', id:id, label:'OTP'}); });
+
+    /* Verification goes through the backend (POST api/v1/otp/verify →
+       200 or 401), with a local compare producing the identical readout
+       when the service worker is not yet controlling this window. */
     document.getElementById('submitOtp').addEventListener('click', function(){
       var typed = document.getElementById('otpInput').value.trim();
       var s = document.getElementById('otpStatus');
-      var ok = typed === CODE;
-      s.textContent = ok ? ('OTP accepted · ' + CODE) : ('OTP rejected · expected ' + CODE + ', got "' + typed + '"');
-      s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
-      LCA.post({type:'otp', id:id, accepted:ok, code:CODE, order:order});
+      function render(ok){
+        s.textContent = ok ? ('OTP accepted · ' + CODE) : ('OTP rejected · expected ' + CODE + ', got "' + typed + '"');
+        s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
+        announce({type:'otp', id:id, accepted:ok, code:CODE, order:order});
+      }
+      fetch('../api/v1/otp/verify', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({code: typed, order: order})
+      }).then(function(r){
+        var ct = r.headers.get('content-type') || '';
+        if(ct.indexOf('json') < 0) throw new Error('backend not active');
+        return r.json();
+      }).then(function(b){ render(!!b.accepted); })
+        .catch(function(){ render(typed === CODE); });
     });
 
     document.getElementById('closeOtp').addEventListener('click', function(){
-      LCA.post({type:'bye', id:id, label:'OTP'});
-      window.close();
+      window.close();   // pagehide posts the bye when the close lands
     });
   })();
   </script>

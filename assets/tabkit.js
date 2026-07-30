@@ -15,20 +15,40 @@
 
    No build step, no framework: same plain-JS voice as flag.js.
    ============================================================ */
+
+/* Backend: register the service-worker API (sw.js at site root, so its
+   scope covers every page). This file loads from pages at several depths
+   (root, tabs/, tabs/store/cart/), so resolve sw.js relative to this
+   script's own URL — assets/../sw.js — never the document's. */
+(function () {
+  try {
+    if (!('serviceWorker' in navigator) || !document.currentScript) return;
+    var sw = new URL('../sw.js', document.currentScript.src);
+    if (sw.origin === location.origin) navigator.serviceWorker.register(sw.pathname).catch(function () { });
+  } catch (e) { /* http/file or blocked — pages fall back to local logic */ }
+})();
+
 (function (global) {
   var CHANNEL = 'lca-playground';
 
   /* Marketing / tracking query params the Smart-Tab score must ignore.
      Recording without them and replaying with them is the single most
-     common way a URL-equality match breaks in the real world. */
+     common way a URL-equality match breaks in the real world.
+     utm_* is a prefix wildcard (the spec's sheet lists the family, and
+     new utm_ keys appear constantly); the rest are ad-platform click ids.
+     Deliberately NOT included: ambiguous keys like `ref` that legitimate
+     apps use as real parameters — the product's exact ignore-list lives
+     in the spec's sheet, so verify divergence there, not here. */
   var TRACKING = [
-    'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id',
     'gclid', 'gbraid', 'wbraid', 'dclid', 'fbclid', 'msclkid', 'ttclid', 'twclid',
     'li_fat_id', 'igshid', 'mc_cid', 'mc_eid', '_ga', '_gl', 'yclid', 's_kwcid',
-    'epik', 'irclickid', 'cmpid', 'campaignid', 'adgroupid', 'ref', 'referrer'
+    'epik', 'irclickid'
   ];
 
-  function isTracking(k) { return TRACKING.indexOf(String(k).toLowerCase()) > -1; }
+  function isTracking(k) {
+    k = String(k).toLowerCase();
+    return k.indexOf('utm_') === 0 || TRACKING.indexOf(k) > -1;
+  }
 
   /* ---------------- cross-context channel ---------------- */
   /* BroadcastChannel covers tabs, popups and grandchild popups on the
@@ -177,13 +197,31 @@
   var mounts = [];   // registry containers to keep painted
 
   function open(url, name, features) {
+    /* Auto-name every _blank open with a unique per-open token. The child
+       reads window.name and echoes it in its hello, giving an EXACT
+       record↔document binding — URL matching alone cannot separate
+       identical twins, and a wrong bind ties the poll to the wrong handle. */
+    if (!name || name === '_blank') name = 'lcaw-' + ORIGIN + '-' + (opened.length + 1);
     var handle = null, blocked = false;
-    try { handle = global.open(url, name || '_blank', features || ''); } catch (e) { handle = null; }
+    try { handle = global.open(url, name, features || ''); } catch (e) { handle = null; }
     if (!handle) blocked = true;
+    /* Named-window reuse: opening with a name that already exists NAVIGATES
+       that window and returns the SAME handle. Recording it as a second row
+       would claim two windows where one exists — update the original row. */
+    if (handle) {
+      for (var x = 0; x < opened.length; x++) {
+        if (opened[x].handle === handle) {
+          opened[x].url = url; opened[x].status = 'open'; opened[x].title = '…';
+          paint();
+          return opened[x];
+        }
+      }
+    }
     var rec = {
       n: opened.length + 1,
       url: url,
-      name: name || '_blank',
+      name: name,
+      winName: name,
       kind: features ? 'window' : 'tab',
       handle: handle,
       blocked: blocked,
@@ -204,18 +242,39 @@
     var i, rec;
     if (msg.type === 'hello') {
       var matched = false;
+      /* Child ids persist in the child's sessionStorage, so a document
+         that navigates or redirects re-announces with the SAME id — an
+         id match is an update to the existing row, never a new row.
+         Without this, pay.html's self-redirect showed one window as two. */
       for (i = 0; i < opened.length; i++) {
+        rec = opened[i];
+        if (rec.id !== null && rec.id === msg.id) {
+          rec.url = msg.url; rec.title = msg.title; rec.status = 'open'; matched = true; break;
+        }
+      }
+      /* Exact bind: the child echoes its window.name, which open() set to
+         a unique token. URL matching cannot separate identical twins. */
+      if (!matched && msg.winName) for (i = 0; i < opened.length; i++) {
+        rec = opened[i];
+        if (rec.id === null && rec.winName && rec.winName === msg.winName) {
+          rec.id = msg.id; rec.title = msg.title; rec.status = 'open'; matched = true; break;
+        }
+      }
+      /* Legacy fallback for children without a winName echo. */
+      if (!matched) for (i = 0; i < opened.length; i++) {
         rec = opened[i];
         if (rec.id === null && sameDoc(rec.url, msg.url)) {
           rec.id = msg.id; rec.title = msg.title; rec.status = 'open'; matched = true; break;
         }
       }
       /* A tab opened from a target="_blank" anchor hands back no window
-         handle, so adopt it from its own hello — otherwise the registry
-         under-reports exactly the tabs a real user opens most often. */
-      if (!matched) {
+         handle, so adopt it from its own hello — BUT only when this page
+         is actually its opener. The channel is origin-wide: without the
+         token gate, every open playground page adopted every child, and
+         the smart-tab scoreboard counted tabs it never opened. */
+      if (!matched && msg.openerToken === ORIGIN) {
         opened.push({
-          n: opened.length + 1, url: msg.url, name: '_blank', kind: 'tab',
+          n: opened.length + 1, url: msg.url, name: '_blank', winName: msg.winName || '', kind: 'tab',
           handle: null, blocked: false, status: 'open', title: msg.title, id: msg.id
         });
       }
@@ -224,7 +283,15 @@
       for (i = 0; i < opened.length; i++) if (opened[i].id === msg.id) opened[i].title = msg.title;
       paint();
     } else if (msg.type === 'bye') {
-      for (i = 0; i < opened.length; i++) if (opened[i].id === msg.id) opened[i].status = 'closed';
+      /* bye fires on pagehide, which covers navigation as well as close.
+         For script-opened rows the handle poll below is the authority
+         (handle.closed within 1 s of a real close); flipping on bye alone
+         would mark a merely-navigating tab as closed. Handle-less rows
+         (anchor-opened) have no better signal, so bye stands for them —
+         a re-announce (hello, same id) reopens the row if it navigated. */
+      for (i = 0; i < opened.length; i++) {
+        if (opened[i].id === msg.id && !opened[i].handle) opened[i].status = 'closed';
+      }
       paint();
     }
   });
@@ -249,12 +316,21 @@
     if (changed) paint();
   }, 1000);
 
-  function registry(el) { if (el) { mounts.push(el); paint(); } }
+  function registry(el) {
+    if (!el) return;
+    el.setAttribute('aria-live', 'polite');   // status flips must reach the AX tree
+    mounts.push(el);
+    paint();
+  }
 
   /* Every interpolated value below goes through esc(); titles and URLs
      arrive from same-origin child documents, but they are still page
      data, so they are escaped rather than trusted. */
+  var lastPaint = '';
   function paint() {
+    var probe = JSON.stringify(opened.map(function (r) { return [r.n, r.title, r.url, r.status]; }));
+    if (probe === lastPaint && mounts.length) return;   // no churn: repaint only on real change
+    lastPaint = probe;
     for (var m = 0; m < mounts.length; m++) {
       var el = mounts[m];
       if (!opened.length) {
@@ -300,7 +376,7 @@
   }
 
   global.LCA = {
-    post: post, on: on,
+    post: post, on: on, token: ORIGIN,
     identity: identity, score: score,
     isTracking: isTracking, TRACKING: TRACKING,
     open: open, registry: registry, opened: opened,

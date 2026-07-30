@@ -1,0 +1,5 @@
+{
+  "ok": true,
+  "engine": "static-fixture",
+  "note": "if you can read this but api/v1/health returns engine=service-worker, the in-browser backend is live"
+}

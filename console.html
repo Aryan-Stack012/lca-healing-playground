@@ -17,7 +17,7 @@
     <header class="page__head">
       <span class="eyebrow">Custom JS · <span id="ctxLabel">context A</span></span>
       <h1>Billing internals</h1>
-      <p class="page__note">Every value on this page is deliberately out of reach of a normal step — painted into a canvas, hidden in <code>::before</code>, sealed in a shadow root, or held only as a JS global. Each card carries the exact snippet to paste into a Custom-JS step, and a readout you can assert on afterwards. This is the one page in the playground that <em>breaks</em> the “live, self-describing DOM text” rule on purpose.</p>
+      <p class="page__note">Every value on this page is deliberately out of reach of a normal step — painted into a canvas, hidden in <code>::before</code>, sealed in a shadow root, or held only as a JS global. Each card carries the exact snippet to paste into a Custom-JS step, and a readout you can assert on afterwards. This is the one page in the playground that <em>breaks</em> the “live, self-describing DOM text” rule on purpose. In the product these are <strong>Custom actions (JavaScript)</strong> — types <em>Custom action</em>, <em>Create variable</em>, <em>Custom validation</em> — and imported values are read inside the snippet as <code>variables.test['name']</code> / <code>variables.data['name']</code> / <code>variables.global['name']</code>.</p>
     </header>
 
     <section class="surface">
@@ -30,11 +30,11 @@
 
     <!-- ============ create variable ============ -->
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Order reference</h2><span class="badge badge--info">type · create variable</span></div>
+      <div class="surface__head"><h2 class="surface__title">Order reference</h2><span class="badge badge--info">type · Create variable</span></div>
       <div class="surface__body stack">
         <p class="meta">The reference exists only as a JS global. Nothing renders it, so there is no element to extract from.</p>
         <div class="snip">
-          <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns ORD-88231</span></div>
+          <div class="snip__head"><span class="label">Create variable</span><span class="meta">returns ORD-88231</span></div>
           <pre class="snip__code" id="snipOrder">return window.__lcaOrder.id;</pre>
         </div>
         <hr class="divider">
@@ -49,12 +49,12 @@
 
     <!-- ============ validation ============ -->
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Stock ledger</h2><span class="badge badge--info">type · validation</span></div>
+      <div class="surface__head"><h2 class="surface__title">Stock ledger</h2><span class="badge badge--info">type · Custom validation</span></div>
       <div class="surface__body stack">
         <p class="meta">Seven SKUs. The claim under test — “all seven are available” — is a DOM fact no single text assertion can express.</p>
         <div class="items" id="ledger"></div>
         <div class="snip">
-          <div class="snip__head"><span class="label">Custom JS · validation</span><span class="meta">returns true / false</span></div>
+          <div class="snip__head"><span class="label">Custom validation</span><span class="meta">returns true / false</span></div>
           <pre class="snip__code" id="snipLedger">var rows = document.querySelectorAll('[data-sku]');
 return rows.length === 7 &&
   Array.prototype.every.call(rows, function (r) {
@@ -71,12 +71,12 @@ return rows.length === 7 &&
 
     <!-- ============ action ============ -->
     <section class="surface">
-      <div class="surface__head"><h2 class="surface__title">Discount code</h2><span class="badge badge--info">type · action</span></div>
+      <div class="surface__head"><h2 class="surface__title">Discount code</h2><span class="badge badge--info">type · Custom action</span></div>
       <div class="surface__body stack">
         <p class="meta">The field is <code>readonly</code>, so a type step cannot fill it. Setting <code>.value</code> alone is not enough either — the page only reacts to a dispatched <code>input</code> event.</p>
         <div class="field"><label for="discount">Discount code (locked)</label><input id="discount" class="locked" readonly value="" placeholder="applied by finance only"></div>
         <div class="snip">
-          <div class="snip__head"><span class="label">Custom JS · action</span><span class="meta">SAVE20 → −$29.80</span></div>
+          <div class="snip__head"><span class="label">Custom action</span><span class="meta">SAVE20 → −$29.80</span></div>
           <pre class="snip__code" id="snipDiscount">var f = document.getElementById('discount');
 f.value = 'SAVE20';
 f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
@@ -97,7 +97,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
         <p class="meta">The balance is painted into a canvas. There is no text node and no accessibility node — the a11y snapshot sees an empty graphic, so the agent has to reach for Custom JS on its own.</p>
         <div class="canvasbox"><canvas id="invoiceCanvas" width="520" height="120" role="img" aria-label="Account statement graphic"></canvas></div>
         <div class="snip">
-          <div class="snip__head"><span class="label">Custom JS · create variable or validation</span><span class="meta">returns "Balance due $149.00"</span></div>
+          <div class="snip__head"><span class="label">Create variable or Custom validation</span><span class="meta">returns "Balance due $149.00"</span></div>
           <pre class="snip__code" id="snipCanvas">return window.lcaReadCanvas();</pre>
         </div>
         <p id="canvasEcho" class="mono" role="status" aria-live="polite">Canvas not read yet.</p>
@@ -113,7 +113,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
           <p class="meta">Generated content — the string lives in a CSS <code>content</code> property, not the DOM.</p>
           <p id="slaBadge" class="mono"></p>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns the SLA string</span></div>
+            <div class="snip__head"><span class="label">Create variable</span><span class="meta">returns the SLA string</span></div>
             <pre class="snip__code" id="snipSla">return getComputedStyle(
   document.getElementById('slaBadge'), '::before'
 ).content;</pre>
@@ -124,7 +124,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
           <p class="meta">A closed-off web component. The reading is inside its shadow root.</p>
           <div id="meterHost"></div>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns 412 kWh</span></div>
+            <div class="snip__head"><span class="label">Create variable</span><span class="meta">returns 412 kWh</span></div>
             <pre class="snip__code" id="snipMeter">return document.getElementById('meterHost')
   .shadowRoot.getElementById('reading').textContent;</pre>
           </div>
@@ -133,7 +133,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
         <div>
           <p class="meta">Browser storage — no DOM representation whatsoever.</p>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · validation</span><span class="meta">cart lock + account tier</span></div>
+            <div class="snip__head"><span class="label">Custom validation</span><span class="meta">cart lock + account tier</span></div>
             <pre class="snip__code" id="snipStore">return sessionStorage.getItem('lca.cart.locked') === 'false'
   &amp;&amp; localStorage.getItem('lca.tier') === 'enterprise';</pre>
           </div>
@@ -148,7 +148,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
         <div>
           <p class="meta"><strong>Async.</strong> Resolves after 1.2 s. A step that does not await it captures a Promise, not a quote.</p>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">resolves to Q-5591</span></div>
+            <div class="snip__head"><span class="label">Create variable</span><span class="meta">resolves to Q-5591</span></div>
             <pre class="snip__code" id="snipAsync">return window.lcaFetchQuote().then(function (r) {
   return r.quote;
 });</pre>
@@ -159,7 +159,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
         <div>
           <p class="meta"><strong>Throws.</strong> The step must fail with the message surfaced — never pass quietly.</p>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · any type</span><span class="meta">throws “ledger locked”</span></div>
+            <div class="snip__head"><span class="label">Any type</span><span class="meta">throws “ledger locked”</span></div>
             <pre class="snip__code" id="snipBoom">return window.lcaBoom();</pre>
           </div>
         </div>
@@ -167,7 +167,7 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
         <div>
           <p class="meta"><strong>Volatile.</strong> A new ticket on every call. If a saved step ever returns the same ticket twice, it froze the value instead of re-running.</p>
           <div class="snip">
-            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">TKT-1, TKT-2, TKT-3 …</span></div>
+            <div class="snip__head"><span class="label">Create variable</span><span class="meta">TKT-1, TKT-2, TKT-3 …</span></div>
             <pre class="snip__code" id="snipTicket">return window.lcaTicket();</pre>
           </div>
           <p id="ticketLog" class="mono" role="status" aria-live="polite">No ticket issued.</p>
@@ -191,7 +191,8 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
     </section>
 
     <footer class="page-foot">
-      <p>Three Custom-JS types: <strong>action</strong> · <strong>validation</strong> · <strong>create variable</strong>. Every snippet above is copy-paste ready.</p>
+      <p>Product feature: <strong>Custom actions (JavaScript)</strong> — <strong>Custom action</strong> · <strong>Custom validation</strong> · <strong>Create variable</strong> (returns a string). Every snippet above is copy-paste ready.</p>
+      <p id="backendState" class="meta" role="status" aria-live="polite">backend: probing…</p>
       <a href="index.html">← Playground hub</a>
     </footer>
   </main>
@@ -306,13 +307,23 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
       __lcaOrder:   {id: ORDER, total: 149.00, currency: 'USD', context: CTX},
       lcaReadCanvas: function(){ return BALANCE; },
       lcaFetchQuote: function(){
-        return new Promise(function(res){
-          setTimeout(function(){
-            var q = document.getElementById('quoteLog');
-            q.textContent = 'Quote issued · Q-5591';
-            q.className = 'mono is-ok';
-            res({quote: 'Q-5591', validFor: '30 days'});
-          }, 1200);
+        /* Served by the backend (GET api/v1/quote, 1200 ms server-side
+           latency) so the await is a real network wait; the local leg
+           mirrors the same delay and payload when the SW isn't live. */
+        function localQuote(){
+          return new Promise(function(res){
+            setTimeout(function(){ res({quote: 'Q-5591', validFor: '30 days'}); }, 1200);
+          });
+        }
+        return fetch('api/v1/quote').then(function(r){
+          var ct = r.headers.get('content-type') || '';
+          if(ct.indexOf('json') < 0) throw new Error('backend not active');
+          return r.json();
+        }).catch(localQuote).then(function(b){
+          var q = document.getElementById('quoteLog');
+          q.textContent = 'Quote issued · ' + b.quote;
+          q.className = 'mono is-ok';
+          return {quote: b.quote, validFor: b.validFor};
         });
       },
       lcaBoom: function(){ throw new Error('ledger locked'); },
@@ -369,8 +380,22 @@ f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
       e.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
     });
 
+    /* ---------------- backend status ---------------- */
+    (function probe(){
+      fetch('api/v1/health').then(function(r){ return r.json(); }).then(function(b){
+        var el = document.getElementById('backendState');
+        if(!el) return;
+        if(b.engine === 'service-worker'){
+          el.textContent = 'backend: service worker · live (api/v1/)';
+          el.className = 'meta is-ok';
+        }else{
+          el.textContent = 'backend: warming up — static fixtures + local fallbacks in use';
+          setTimeout(probe, 2000);   // SW claims the page moments after first load
+        }
+      }).catch(function(){});
+    })();
+
     /* ---------------- context B ---------------- */
-    LCA.registry(document.createElement('div'));   // keeps the open registry warm
     document.getElementById('openConsoleB').addEventListener('click', function(){
       var rec = LCA.open('console.html?ctx=B', '_blank');
       var s = document.getElementById('ctxState');

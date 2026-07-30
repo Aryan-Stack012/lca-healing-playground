@@ -1,0 +1,13 @@
+{
+  "skus": [
+    { "sku": "NW-1001", "name": "Enterprise licence", "available": true },
+    { "sku": "NW-1002", "name": "Priority support", "available": true },
+    { "sku": "NW-1003", "name": "Additional seat", "available": true },
+    { "sku": "NW-1004", "name": "Audit log retention", "available": true },
+    { "sku": "NW-1005", "name": "SSO connector", "available": true },
+    { "sku": "NW-1006", "name": "Sandbox project", "available": true },
+    { "sku": "NW-1007", "name": "Data residency add-on", "available": true }
+  ],
+  "total": 7,
+  "available": 7
+}

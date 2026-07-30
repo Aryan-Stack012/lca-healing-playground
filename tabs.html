@@ -25,12 +25,12 @@
       <div class="surface__body stack">
         <div class="grid2">
           <div class="stack">
-            <a id="openInvoice" class="dl-btn" href="tabs/target.html?tab=B" target="_blank">Open invoice in a new tab</a>
-            <span class="meta">Real <code>target="_blank"</code> anchor → tab <strong>B</strong>. Cannot be closed by script.</span>
+            <a id="openInvoice" class="dl-btn" href="tabs/target.html?tab=B" target="_blank" rel="opener">Open invoice in a new tab</a>
+            <span class="meta">Real <code>target="_blank"</code> anchor → tab <strong>B</strong> (<code>rel="opener"</code>, since Chrome defaults <code>_blank</code> to noopener). Whether script may close it is the browser's call — <em>Close this tab</em> over there reports what actually happened.</span>
           </div>
           <div class="stack">
-            <button id="openScript" class="btn-primary">Open invoice (scripted)</button>
-            <span class="meta"><code>window.open</code> → tab <strong>C</strong>. Script-opened, so <em>Close this tab</em> works there.</span>
+            <button id="openScript" class="btn-primary" disabled>Open invoice (scripted)</button>
+            <span class="meta"><code>window.open</code> → tab <strong>C</strong>. Script-opened, so <em>Close this tab</em> always works there. Arms once the flag resolves.</span>
           </div>
           <div class="stack">
             <button id="openTwin">Open a second copy of tab B</button>
@@ -110,9 +110,11 @@
     LCA.registry(document.getElementById('registry'));
 
     /* ---------------- handoff inbox ---------------- */
+    /* token-gated: only handoffs from tabs THIS page opened land here —
+       the channel is origin-wide and other playground pages open tabs too */
     var log = [];
     LCA.on(function(msg){
-      if(msg.type !== 'handoff') return;
+      if(msg.type !== 'handoff' || msg.openerToken !== LCA.token) return;
       log.push(msg);
       var h = document.getElementById('handoff');
       h.textContent = 'Handoff received from tab ' + msg.label + ' · ' + msg.code +
@@ -135,8 +137,8 @@
     });
 
     document.getElementById('openFramed').addEventListener('click', function(){
-      LCA.open('tabs/framed.html?tab=F', '_blank');
-      say('Framed approval opened as tab F.');
+      var rec = LCA.open('tabs/framed.html?tab=F&title=' + encodeURIComponent('Hosted approval · Tab F'), '_blank');
+      say(rec.blocked ? 'The framed approval was blocked by the browser.' : 'Framed approval opened as tab F.', rec.blocked);
     });
 
     document.getElementById('openSelfClosing').addEventListener('click', function(){
@@ -178,20 +180,30 @@
       note.textContent = copy[r.state] + ' (source: ' + r.source + ')';
       note.className = 'meta ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad');
 
-      document.getElementById('openScript').addEventListener('click', function(){
+      /* The button stays disabled until the flag resolves: binding the
+         handler late but leaving the button clickable made a fast click a
+         silent no-op — the worst kind of record/replay skew. */
+      var btn = document.getElementById('openScript');
+      btn.disabled = false;
+      btn.addEventListener('click', function(){
         if(r.state === 'healthy'){
-          LCA.open('tabs/target.html?tab=C', '_blank');
-          say('Invoice opened as the only new tab (index 1).');
+          var rec = LCA.open('tabs/target.html?tab=C', '_blank');
+          say(rec.blocked ? 'The invoice tab was blocked by the browser.' : 'Invoice opened as the only new tab (index 1).', rec.blocked);
           return;
         }
         /* Both opens stay inside this one click handler — a deferred
-           window.open loses the user gesture and gets popup-blocked. */
-        LCA.open('tabs/target.html?tab=N&title=Notifications%20%C2%B7%20LCA%20Playground', '_blank');
+           window.open loses the user gesture entirely. Note: two popups in
+           one gesture needs popup blocking off (BrowserStack Automate and
+           the LCNC launch paths run Chrome that way; a default local
+           Chrome may block the second and the registry will say so). */
+        var n = LCA.open('tabs/target.html?tab=N&title=Notifications%20%C2%B7%20LCA%20Playground', '_blank');
         if(r.state === 'gone'){
-          say('Notifications opened. The invoice tab did not open at all.', true);
+          say(n.blocked ? 'Notifications was blocked by the browser.' : 'Notifications opened. The invoice tab did not open at all.', true);
         }else{
-          LCA.open('tabs/target.html?tab=C', '_blank');
-          say('Notifications opened first — the invoice is now index 2, not index 1.', true);
+          var c = LCA.open('tabs/target.html?tab=C', '_blank');
+          say(c.blocked
+            ? 'Notifications opened but the invoice was popup-blocked — allow popups for this site to exercise the index shift.'
+            : 'Notifications opened first — the invoice is now index 2, not index 1.', true);
         }
       });
     });

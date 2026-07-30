@@ -36,6 +36,7 @@
           <button id="openOtp">Verify with OTP</button>
         </div>
         <p id="payStatus" class="mono" role="status" aria-live="polite">Awaiting authorisation.</p>
+        <p id="viaNote" class="meta" role="status" aria-live="polite"></p>
         <p id="closeNote" class="meta" role="status" aria-live="polite"></p>
       </div>
     </section>
@@ -51,7 +52,15 @@
   (function(){
     var P = new URLSearchParams(location.search);
     var REF = 'SP-77214';
-    var id  = 'pay-' + Date.now().toString(36);
+
+    /* persistent per-window channel id — survives the self-redirect,
+       so the opener's registry sees one window, not two */
+    var id = null;
+    try { id = sessionStorage.getItem('lcaChanId:PAY'); } catch(e){}
+    if(!id){
+      id = 'pay-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+      try { sessionStorage.setItem('lcaChanId:PAY', id); } catch(e){}
+    }
 
     var order  = P.get('order')  || 'INV-4417';
     var amount = P.get('amount') || '149.00';
@@ -68,8 +77,16 @@
       document.getElementById('modeBadge').textContent = 'window · redirected';
     }
 
-    LCA.post({type:'hello', id:id, label:'PAY', url:location.href, title:document.title});
-    window.addEventListener('pagehide', function(){ LCA.post({type:'bye', id:id, label:'PAY'}); });
+    /* every message carries the opener's registry token + this window's
+       name so only the real opener binds/adopts this window */
+    var openerToken = null;
+    try { openerToken = window.opener && window.opener.LCA ? window.opener.LCA.token : null; } catch(e){}
+    var winName = '';
+    try { winName = window.name || ''; } catch(e){}
+    function announce(msg){ msg.openerToken = openerToken; msg.winName = winName; LCA.post(msg); }
+
+    announce({type:'hello', id:id, label:'PAY', url:location.href, title:document.title});
+    window.addEventListener('pagehide', function(){ announce({type:'bye', id:id, label:'PAY'}); });
 
     /* The window navigates itself after opening, so its title and URL at
        step-record time are not the ones it settles on. */
@@ -88,32 +105,60 @@
       s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
       document.getElementById('confirmPay').disabled = true;
       document.getElementById('declinePay').disabled = true;
-      LCA.post({type:'payment', id:id, outcome:outcome, ref:REF, order:order, amount:amount});
+      announce({type:'payment', id:id, outcome:outcome, ref:REF, order:order, amount:amount});
+    }
+
+    /* The payment settles through the same-origin backend (service worker,
+       api/v1/payments) so the request is real, visible network activity.
+       The final readout text is byte-identical on the local fallback — a
+       replay must never be able to tell which path authorised it. */
+    function authorise(action){
+      return fetch('../api/v1/payments', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({order: order, amount: amount, action: action})
+      }).then(function(r){
+        var ct = r.headers.get('content-type') || '';
+        if(ct.indexOf('json') < 0) throw new Error('backend not active');
+        return r.json();
+      }).then(function(b){
+        return {ref: b.ref || REF, via: 'backend'};
+      }).catch(function(){
+        return {ref: REF, via: 'local'};
+      });
     }
 
     document.getElementById('confirmPay').addEventListener('click', function(){
-      settle('Approved · ' + REF, true, 'approved');
-      if(!auto){
-        document.getElementById('closeNote').textContent =
-          'This window stays open — close it from the test, or switch back to the merchant window.';
-        return;
-      }
-      var left = 3;
-      var note = document.getElementById('closeNote');
-      note.textContent = 'Closing automatically in ' + left + 's…';
-      var t = setInterval(function(){
-        left--;
-        note.textContent = 'Closing automatically in ' + Math.max(left,0) + 's…';
-        if(left <= 0){
-          clearInterval(t);
-          LCA.post({type:'bye', id:id, label:'PAY'});
-          window.close();
+      var s = document.getElementById('payStatus');
+      s.textContent = 'Authorising…';
+      s.className = 'mono';
+      authorise('confirm').then(function(r){
+        settle('Approved · ' + r.ref, true, 'approved');
+        document.getElementById('viaNote').textContent =
+          r.via === 'backend' ? 'authorised via api/v1/payments' : 'authorised locally (backend warming up)';
+        if(!auto){
+          document.getElementById('closeNote').textContent =
+            'This window stays open — close it from the test, or switch back to the merchant window.';
+          return;
         }
-      }, 1000);
+        var left = 3;
+        var note = document.getElementById('closeNote');
+        note.textContent = 'Closing automatically in ' + left + 's…';
+        var t = setInterval(function(){
+          left--;
+          note.textContent = 'Closing automatically in ' + Math.max(left,0) + 's…';
+          if(left <= 0){
+            clearInterval(t);
+            window.close();   // pagehide posts the bye when the close lands
+          }
+        }, 1000);
+      });
     });
 
     document.getElementById('declinePay').addEventListener('click', function(){
-      settle('Declined · ' + REF, false, 'declined');
+      authorise('decline').then(function(r){
+        settle('Declined · ' + r.ref, false, 'declined');
+      });
     });
 
     /* A popup opening its own popup — the grandchild handle. */

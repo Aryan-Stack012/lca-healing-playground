@@ -1,0 +1,8 @@
+{
+  "order": "INV-4417",
+  "amount": 149.00,
+  "currency": "USD",
+  "status": "unpaid",
+  "ref": null,
+  "note": "static fixture — the live endpoint (api/v1/orders/INV-4417) reflects payments made this session"
+}

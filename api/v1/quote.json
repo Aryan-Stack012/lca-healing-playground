@@ -1,0 +1,5 @@
+{
+  "quote": "Q-5591",
+  "validFor": "30 days",
+  "note": "static fixture — the live endpoint (api/v1/quote) adds 1200 ms latency via the in-browser service worker"
+}

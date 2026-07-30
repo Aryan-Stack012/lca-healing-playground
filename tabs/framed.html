@@ -71,7 +71,12 @@
     window.lcaFrameApproved = function(){
       echo.textContent = 'Approved inside the frame · ' + code;
       echo.className = 'is-ok';
-      LCA.post({type:'handoff', id:'framed', label:'F', code:code, note:'via iframe', title:document.title});
+      var openerToken = null;
+      try { openerToken = window.opener && window.opener.LCA ? window.opener.LCA.token : null; } catch(e){}
+      var winName = '';
+      try { winName = window.name || ''; } catch(e){}
+      LCA.post({type:'handoff', id:'framed', label:'F', code:code, note:'via iframe', title:document.title,
+                openerToken:openerToken, winName:winName});
     };
 
     frame.srcdoc =
