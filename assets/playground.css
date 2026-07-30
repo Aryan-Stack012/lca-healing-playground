@@ -408,6 +408,22 @@ pre{
 /* readonly field that only a Custom-JS action can fill */
 .locked{border-style:dashed !important; color:var(--faint) !important}
 
+/* Custom-JS failure cards (customjs-fail.html) */
+.fcard{border:1px solid var(--line-soft); border-radius:var(--r-sm); background:var(--ink-2); padding:var(--s4)}
+.fcard + .fcard{margin-top:var(--s3)}
+.fcard[data-verdict="fail"]{border-color:color-mix(in srgb,var(--healthy) 40%,var(--line))}
+.fcard[data-verdict="wrong"]{border-color:color-mix(in srgb,var(--drift) 55%,var(--line)); background:var(--drift-dim)}
+.fcard[data-verdict="depends"]{border-color:color-mix(in srgb,var(--config) 60%,var(--line)); background:var(--config-dim)}
+.fcard[data-verdict="pass"]{border-color:color-mix(in srgb,var(--gone) 55%,var(--line)); background:var(--gone-dim)}
+.fcard__head{display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; margin-bottom:var(--s2)}
+.fcard__n{color:var(--faint); font-size:var(--fs-75); font-variant-numeric:tabular-nums}
+.fcard__t{font-family:var(--font-display); font-weight:600; font-size:var(--fs-200); color:var(--text)}
+.fcard__why{margin:0 0 var(--s3); font-size:var(--fs-100); color:var(--muted)}
+.fcard__exp{margin:var(--s3) 0; font-size:var(--fs-100); color:var(--muted)}
+.fcard__exp strong{color:var(--text)}
+.fcard__out{font-size:var(--fs-75); color:var(--faint)}
+.fcard .snip__code{white-space:pre-wrap}
+
 /* generated content — reachable only through getComputedStyle */
 #slaBadge{margin:0}
 #slaBadge::before{content:"SLA 99.95% · 30-day service credit"; font-family:var(--font-mono);

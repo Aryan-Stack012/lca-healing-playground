@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom JS failures · LCA Playground</title>
+<meta name="description" content="Eighteen ways a Custom actions (JavaScript) step breaks — compile errors, throws, wrong return contracts, async and timeouts — plus the three that pass while being wrong.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="customjs-fail.html">
+  <main id="main" tabindex="-1" class="wrap page">
+    <header class="page__head">
+      <span class="eyebrow">Custom actions (JavaScript) · failure catalogue</span>
+      <h1>Eighteen ways it breaks</h1>
+      <p class="page__note">Every card is a snippet that should <strong>fail</strong> a Custom-JS step, with the exact error it should produce. <em>Run it here</em> executes the same string in this page and reports what the browser actually did — so the page is the oracle, and anything the product reports differently is a finding.</p>
+      <p class="page__note" style="margin-top:var(--s3)">Two of the eighteen are the point of this page: they raise <strong>no error at all</strong> and record a wrong outcome — marked <span class="badge badge--warn">passes wrongly</span>. Two more the browser cannot decide on its own: whether they fail depends entirely on whether the executor awaits a Promise and enforces a step timeout.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Contract under test</h2><span class="surface__meta">from the LCA docs</span></div>
+      <div class="surface__body">
+        <div class="rows">
+          <div class="row"><span class="row__k">Custom action</span><span class="row__v">runs a snippet on the page · no return required</span></div>
+          <div class="row"><span class="row__k">Custom validation</span><span class="row__v">must return <strong>true</strong> or <strong>false</strong> · true = pass</span></div>
+          <div class="row"><span class="row__k">Create variable</span><span class="row__v">must return a <strong>string</strong></span></div>
+        </div>
+        <hr class="divider">
+        <p class="meta">This page grades strictly against that contract: a validation passes only on <code>=== true</code>, a Create variable only on a non-empty string. Async returns, thrown-error reporting and JS timeouts are <em>not</em> documented for Custom JS — the async and timeout cards below are exactly the undocumented ground.</p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Run everything</h2><span class="live" data-state="healthy"><i></i>live</span></div>
+      <div class="surface__body stack">
+        <div class="inline">
+          <button id="runAll" class="btn-primary">Run all 18 in this page</button>
+          <button id="resetAll" class="decoy">Reset</button>
+        </div>
+        <p id="summary" class="mono" role="status" aria-live="polite">Nothing run yet.</p>
+        <span class="meta">Two cards deliberately block or stall for a few seconds — that is the failure being demonstrated, not the page hanging.</span>
+      </div>
+    </section>
+
+    <div id="cases"></div>
+
+    <!-- fixtures the cards operate on -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Fixtures</h2><span class="surface__meta">what the snippets reach for</span></div>
+      <div class="surface__body stack">
+        <div class="field">
+          <label for="silentField">Discount code (readonly — reacts only to a dispatched input event)</label>
+          <input id="silentField" class="locked" readonly value="" placeholder="applied by finance only">
+        </div>
+        <p id="silentState" class="mono" role="status" aria-live="polite">No discount applied.</p>
+        <hr class="divider">
+        <p class="meta">A hosted total inside an iframe — reachable only after a frame switch, or via <code>.contentDocument</code>.</p>
+        <iframe id="totalFrame" title="Hosted total" class="frame" style="height:78px"></iframe>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k"><code>window.lcaNotAFunction</code></span><span class="row__v">a string, not a function</span></div>
+          <div class="row"><span class="row__k"><code>window.__lcaMissing</code></span><span class="row__v">never defined</span></div>
+          <div class="row"><span class="row__k"><code>#does-not-exist</code></span><span class="row__v">no such element</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Working Custom-JS surfaces live on <a href="console.html">console.html</a>. This page is the failure side only.</p>
+      <a href="index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  (function(){
+    /* ---------------- fixtures ---------------- */
+    window.lcaNotAFunction = 'I am a string, not a function';
+
+    document.getElementById('silentField').addEventListener('input', function(){
+      var s = document.getElementById('silentState');
+      s.textContent = 'Discount ' + this.value.trim().toUpperCase() + ' applied · total $119.20';
+      s.className = 'mono is-ok';
+    });
+
+    document.getElementById('totalFrame').srcdoc =
+      '<!doctype html><html lang="en"><body style="margin:0;padding:16px;font-family:ui-sans-serif,system-ui,sans-serif;' +
+      'background:#0C111E;color:#8A97AE"><span style="font:12px ui-monospace,monospace">HOSTED TOTAL</span><br>' +
+      '<span id="framed-total" style="font:700 20px ui-monospace,monospace;color:#E8EDF7">$149.00</span></body></html>';
+
+    /* ---------------- the catalogue ----------------
+       Each `src` is the exact string shown on the card AND the exact string
+       executed by "Run it here" — one source of truth, so a card can never
+       drift from what it demonstrates. These are a static in-source
+       catalogue; nothing here is user input. */
+    var CASES = [
+      {sect:'A · Never even runs', type:'variable', badge:'SyntaxError',
+       title:'Unbalanced brace',
+       why:'The snippet does not parse, so it fails before the page is touched at all.',
+       expect:'SyntaxError at compile time — no execution, no side effects.',
+       src:"var rows = document.querySelectorAll('[data-sku]');\nif (rows.length === 7 {\n  return 'ok';\n}"},
+
+      {sect:'A · Never even runs', type:'variable', badge:'TypeError',
+       title:'Undefined global',
+       why:'The hook was never installed on this page, so the property read happens on undefined.',
+       expect:"TypeError: Cannot read properties of undefined (reading 'id')",
+       src:"return window.__lcaMissing.id;"},
+
+      {sect:'A · Never even runs', type:'variable', badge:'TypeError',
+       title:'Element not found',
+       why:'getElementById returns null and the snippet reads straight through it — the single most common Custom-JS break in the wild.',
+       expect:"TypeError: Cannot read properties of null (reading 'textContent')",
+       src:"return document.getElementById('does-not-exist').textContent;"},
+
+      {sect:'A · Never even runs', type:'action', badge:'TypeError',
+       title:'Not a function',
+       why:'The name exists but holds a string. A typo on a real helper looks exactly like this.',
+       expect:'TypeError: window.lcaNotAFunction is not a function',
+       src:"return window.lcaNotAFunction();"},
+
+      {sect:'B · Throws', type:'validation', badge:'Error',
+       title:'Explicit throw',
+       why:'The application refuses the operation. The step must fail with the message intact.',
+       expect:'Error: ledger locked — the message must reach the step, not be flattened.',
+       src:"throw new Error('ledger locked');"},
+
+      {sect:'B · Throws', type:'validation', badge:'thrown non-Error',
+       title:'Throws a bare string',
+       why:'JS lets you throw anything. Harnesses that read err.message get undefined and often report an empty reason.',
+       expect:'Failure whose reason is the string "ledger locked", not "undefined" or "[object Object]".',
+       src:"throw 'ledger locked';"},
+
+      {sect:'B · Throws', type:'action', badge:'passes wrongly', wrongly:true,
+       title:'Throws inside a callback',
+       why:'The snippet returns cleanly and the throw happens later, on the window, outside the step boundary.',
+       expect:'A naive executor reports PASS. The error never reaches the step — look for it in the browser console instead.',
+       src:"setTimeout(function () {\n  throw new Error('ledger locked (too late)');\n}, 400);\nreturn 'queued';"},
+
+      {sect:'C · Wrong return contract', type:'validation', badge:'truthy trap',
+       title:'Returns the string "false"',
+       why:'A non-empty string is truthy, so the literal "false" is truthy. A strict grader fails it; an executor that tests truthiness instead of === true passes it.',
+       expect:'Must FAIL. If the product passes this, every string-returning validation on the platform is unsound.',
+       src:"var rows = document.querySelectorAll('[data-sku]');\nreturn String(rows.length === 7);"},
+
+      {sect:'C · Wrong return contract', type:'validation', badge:'undefined',
+       title:'Forgot the return',
+       why:'The comparison is evaluated and discarded, so the snippet yields undefined.',
+       expect:'Must FAIL — undefined is not true. It must not be read as "no objection, therefore pass".',
+       src:"var rows = document.querySelectorAll('[data-sku]');\nrows.length === 7;"},
+
+      {sect:'C · Wrong return contract', type:'variable', badge:'object',
+       title:'Returns an object',
+       why:'Create variable is documented to return a string. An object either stringifies to [object Object] or is rejected.',
+       expect:'Either a clean contract failure, or a variable holding "[object Object]" — which poisons every later step.',
+       src:"return { id: 'ORD-88231', total: 149 };"},
+
+      {sect:'C · Wrong return contract', type:'variable', badge:'null',
+       title:'Returns null',
+       why:'A lookup that legitimately found nothing. The danger is persisting an empty variable and carrying on.',
+       expect:'Must FAIL. A silently-empty variable turns every downstream assertion into a false comparison.',
+       src:"return document.querySelector('[data-sku=\"NW-9999\"]');"},
+
+      {sect:'D · Async and timeouts', type:'variable', badge:'Promise', depends:true,
+       title:'Returns a pending Promise',
+       why:'Async support is undocumented for Custom JS. If the executor does not await, it captures the Promise object itself.',
+       expect:'Either the resolved "Q-5591", or a clean failure. Capturing "[object Promise]" as the variable is the bug.',
+       src:"return new Promise(function (resolve) {\n  setTimeout(function () { resolve('Q-5591'); }, 1200);\n});"},
+
+      {sect:'D · Async and timeouts', type:'variable', badge:'rejection',
+       title:'Promise rejects',
+       why:'The async path fails. An un-awaited rejection becomes an unhandled rejection on the window, not a step failure.',
+       expect:'Failure carrying "quote service unavailable" — not a pass, and not a silent unhandled rejection.',
+       src:"return new Promise(function (resolve, reject) {\n  setTimeout(function () { reject(new Error('quote service unavailable')); }, 600);\n});"},
+
+      {sect:'D · Async and timeouts', type:'variable', badge:'never settles',
+       title:'Promise never settles',
+       why:'No documented JS timeout exists for Custom JS, so this leans on the generic step timeout.',
+       expect:'A timeout failure within the step budget. A run that hangs to the session limit is the bug.',
+       src:"return new Promise(function () {\n  /* deliberately never resolves */\n});"},
+
+      {sect:'D · Async and timeouts', type:'variable', badge:'undefined',
+       title:'Value assigned after the return',
+       why:'The classic async mistake: the snippet returns before the callback assigns.',
+       expect:'Must FAIL as undefined. Passing here means the contract is not checked at all.',
+       src:"var quote;\nsetTimeout(function () { quote = 'Q-5591'; }, 300);\nreturn quote;"},
+
+      {sect:'D · Async and timeouts', type:'action', badge:'blocks', depends:true,
+       title:'Blocking synchronous loop',
+       why:'A sync loop starves the event loop — nothing on the page can respond while it runs.',
+       expect:'A step timeout, and the session must survive it. Use a much larger bound when pasting into LCA.',
+       src:"var stop = Date.now() + 2500;\nwhile (Date.now() < stop) { /* spin */ }\nreturn 'done';"},
+
+      {sect:'E · No error, wrong outcome', type:'action', badge:'passes wrongly', wrongly:true,
+       title:'Sets .value without dispatching',
+       why:'The assignment succeeds and nothing throws, but the page listens for input, so no application state changes.',
+       expect:'PASS with the app untouched. Check the fixture readout below: it still says "No discount applied."',
+       src:"document.getElementById('silentField').value = 'SAVE20';\nreturn 'set';"},
+
+      {sect:'E · No error, wrong outcome', type:'variable', badge:'TypeError',
+       title:'Reaches into an iframe from the top document',
+       why:'The element is inside a nested browsing context, so the top-level lookup returns null.',
+       expect:"TypeError on null. The working form needs a frame switch first, or .contentDocument.",
+       src:"return document.getElementById('framed-total').textContent;"}
+    ];
+
+    /* ---------------- rendering ---------------- */
+    var TYPE_LABEL = {action:'Custom action', validation:'Custom validation', variable:'Create variable'};
+
+    var mount = document.getElementById('cases'), html = '', lastSect = null;
+    CASES.forEach(function(c, i){
+      if(c.sect !== lastSect){
+        if(lastSect !== null) html += '</div></section>';
+        html += '<section class="surface"><div class="surface__head">' +
+                '<h2 class="surface__title">' + LCA_esc(c.sect) + '</h2>' +
+                '<span class="surface__meta">expected: failure</span></div>' +
+                '<div class="surface__body stack">';
+        lastSect = c.sect;
+      }
+      var bcls = c.wrongly ? 'badge--warn' : 'badge--err';
+      html += '<div class="fcard" id="card-' + i + '">' +
+        '<div class="fcard__head">' +
+          '<span class="fcard__n mono">' + (i + 1) + '</span>' +
+          '<span class="fcard__t">' + LCA_esc(c.title) + '</span>' +
+          '<span class="badge badge--info">' + LCA_esc(TYPE_LABEL[c.type]) + '</span>' +
+          '<span class="badge ' + bcls + '">' + LCA_esc(c.badge) + '</span>' +
+        '</div>' +
+        '<p class="fcard__why">' + LCA_esc(c.why) + '</p>' +
+        '<div class="snip"><div class="snip__head">' +
+          '<span class="label">' + LCA_esc(TYPE_LABEL[c.type]) + '</span>' +
+          '<span class="meta">paste this into the step</span></div>' +
+          '<pre class="snip__code">' + LCA_esc(c.src) + '</pre></div>' +
+        '<p class="fcard__exp"><strong>Expected:</strong> ' + LCA_esc(c.expect) + '</p>' +
+        '<div class="inline"><button data-run="' + i + '">Run it here</button>' +
+          '<span class="fcard__out mono" id="out-' + i + '" role="status" aria-live="polite">Not run.</span></div>' +
+        '</div>';
+    });
+    html += '</div></section>';
+    mount.innerHTML = html;
+
+    function LCA_esc(s){
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function(ch){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch];
+      });
+    }
+
+    /* ---------------- the runner ----------------
+       Grades strictly against the documented contract, so the verdict this
+       page shows is the verdict the product ought to show. */
+    var SETTLE_MS = 4000;
+
+    function fmt(v){
+      if(typeof v === 'string') return '"' + v + '"';
+      if(v === undefined) return 'undefined';
+      if(v === null) return 'null';
+      if(typeof v === 'object'){
+        try { return Object.prototype.toString.call(v) + ' ' + JSON.stringify(v); }
+        catch(e){ return Object.prototype.toString.call(v); }
+      }
+      return String(v);
+    }
+
+    function describeThrown(e){
+      if(e instanceof Error) return e.name + ': ' + e.message;
+      return 'threw a non-Error ' + (typeof e) + ' — ' + fmt(e);
+    }
+
+    function grade(c, value){
+      if(c.type === 'validation'){
+        if(value === true)  return {ok:true,  note:'returned true'};
+        return {ok:false, note:'returned ' + fmt(value) + ' — typeof ' + (typeof value) +
+                               (value ? ', truthy' : ', falsy') + ' · not === true'};
+      }
+      if(c.type === 'variable'){
+        if(typeof value === 'string' && value !== '') return {ok:true, note:'returned ' + fmt(value)};
+        return {ok:false, note:'returned ' + fmt(value) + ' — typeof ' + (typeof value) + ' · not a non-empty string'};
+      }
+      return {ok:true, note:'did not throw · returned ' + fmt(value)};
+    }
+
+    /* Four outcomes. `ok` is whether the snippet would satisfy the contract:
+         !ok                 → FAILS (what the card is for)
+         ok && c.wrongly     → PASSES while being wrong (no error raised at all)
+         ok && c.depends     → the browser cannot decide; the executor's await
+                               or timeout behaviour does
+         ok && neither       → passes unexpectedly, i.e. the card is broken */
+    function report(i, c, ok, detail){
+      var word, vd;
+      if(!ok)            { word = 'FAILS';                    vd = 'fail'; }
+      else if(c.wrongly) { word = 'PASSES — wrongly';         vd = 'wrong'; }
+      else if(c.depends) { word = 'DEPENDS on the executor';  vd = 'depends'; }
+      else               { word = 'PASSES unexpectedly';      vd = 'pass'; }
+      var el = document.getElementById('out-' + i);
+      el.textContent = word + ' · ' + detail;
+      el.className = 'fcard__out mono ' + (vd === 'fail' ? 'is-ok' : (vd === 'depends' ? '' : 'is-bad'));
+      document.getElementById('card-' + i).setAttribute('data-verdict', vd);
+      return vd;
+    }
+
+    function runOne(i){
+      var c = CASES[i];
+      var fn;
+      try {
+        /* the catalogue strings are static in-source content, never input */
+        fn = new Function(c.src);
+      } catch(e){
+        return Promise.resolve(report(i, c, false, 'compile · ' + describeThrown(e)));
+      }
+      var value;
+      try {
+        value = fn();
+      } catch(e){
+        return Promise.resolve(report(i, c, false, 'threw · ' + describeThrown(e)));
+      }
+      if(value && typeof value.then === 'function'){
+        var settled = false;
+        return Promise.race([
+          value.then(
+            function(v){ settled = true; return {k:'resolved', v:v}; },
+            function(e){ settled = true; return {k:'rejected', e:e}; }
+          ),
+          new Promise(function(res){ setTimeout(function(){ if(!settled) res({k:'pending'}); }, SETTLE_MS); })
+        ]).then(function(r){
+          if(r.k === 'pending')  return report(i, c, false, 'still pending after ' + SETTLE_MS + ' ms · a step would time out');
+          if(r.k === 'rejected') return report(i, c, false, 'rejected · ' + describeThrown(r.e));
+          var g = grade(c, r.v);
+          return report(i, c, g.ok, 'resolved · ' + g.note +
+            ' · un-awaited the step captures ' + fmt(value));
+        });
+      }
+      var g = grade(c, value);
+      return report(i, c, g.ok, g.note);
+    }
+
+    document.getElementById('cases').addEventListener('click', function(ev){
+      var b = ev.target.closest('button[data-run]');
+      if(b) runOne(parseInt(b.dataset.run, 10));
+    });
+
+    document.getElementById('runAll').addEventListener('click', function(){
+      var s = document.getElementById('summary');
+      s.textContent = 'Running…'; s.className = 'mono';
+      var seq = Promise.resolve(), tally = {fail:0, wrong:0, depends:0, pass:0};
+      CASES.forEach(function(c, i){
+        seq = seq.then(function(){
+          return Promise.resolve(runOne(i)).then(function(v){ tally[v]++; });
+        });
+      });
+      seq.then(function(){
+        s.textContent = CASES.length + ' cases · ' + tally.fail + ' fail as intended · ' +
+                        tally.wrong + ' pass while being wrong · ' +
+                        tally.depends + ' decided by the executor, not the browser' +
+                        (tally.pass ? ' · ' + tally.pass + ' PASS UNEXPECTEDLY (card is broken)' : '');
+        s.className = 'mono ' + (tally.pass ? 'is-bad' : 'is-ok');
+      });
+    });
+
+    document.getElementById('resetAll').addEventListener('click', function(){
+      CASES.forEach(function(c, i){
+        var el = document.getElementById('out-' + i);
+        el.textContent = 'Not run.'; el.className = 'fcard__out mono';
+        document.getElementById('card-' + i).removeAttribute('data-verdict');
+      });
+      var f = document.getElementById('silentField'); f.value = '';
+      var st = document.getElementById('silentState');
+      st.textContent = 'No discount applied.'; st.className = 'mono';
+      var s = document.getElementById('summary');
+      s.textContent = 'Nothing run yet.'; s.className = 'mono';
+    });
+  })();
+  </script>
+</body>
+</html>
