@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecurePay · authorise payment</title>
+<meta name="description" content="A third-party-style payment window opened with window.open features — the PayPal-shaped popup case, with optional auto-close on confirmation.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+</head>
+<body>
+  <main id="main" tabindex="-1" class="wrap narrow page" style="padding-top:var(--s5)">
+    <header class="page__head">
+      <span class="eyebrow">SecurePay · <span id="stepLabel">authorise</span></span>
+      <h1>Authorise payment</h1>
+      <p class="page__note">A separate browser <strong>window</strong>, not a tab — opened with size features, so it carries its own window handle.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Payment request</h2><span class="badge badge--info" id="modeBadge">window</span></div>
+      <div class="surface__body stack">
+        <div class="rows">
+          <div class="row"><span class="row__k">Merchant</span><span class="row__v">Northwind Licensing</span></div>
+          <div class="row"><span class="row__k">Order</span><span class="row__v" id="orderRef">INV-4417</span></div>
+          <div class="row row--total"><span class="row__k">Amount due</span><span class="row__v" id="amountDue">$149.00</span></div>
+        </div>
+        <hr class="divider">
+        <div class="field"><label for="card">Card number</label><input id="card" inputmode="numeric" value="4242 4242 4242 4242"></div>
+        <div class="inline">
+          <button id="confirmPay" class="btn-primary">Confirm payment</button>
+          <button id="declinePay" class="decoy">Decline</button>
+          <button id="openOtp">Verify with OTP</button>
+        </div>
+        <p id="payStatus" class="mono" role="status" aria-live="polite">Awaiting authorisation.</p>
+        <p id="closeNote" class="meta" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p class="meta">Reference is fixed at <code>SP-77214</code> so it can be asserted exactly.</p>
+      <a href="../index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="../assets/tabkit.js"></script>
+  <script>
+  (function(){
+    var P = new URLSearchParams(location.search);
+    var REF = 'SP-77214';
+    var id  = 'pay-' + Date.now().toString(36);
+
+    var order  = P.get('order')  || 'INV-4417';
+    var amount = P.get('amount') || '149.00';
+    var step   = P.get('step')   || 'authorise';
+    var auto   = P.get('autoclose') === '1';
+    var redirect = parseInt(P.get('redirect'), 10) || 0;
+
+    document.getElementById('orderRef').textContent  = order;
+    document.getElementById('amountDue').textContent = '$' + amount;
+    document.getElementById('stepLabel').textContent = step;
+    document.title = 'SecurePay · ' + step + ' ' + order;
+    if(step === 'review'){
+      document.querySelector('h1').textContent = 'Review and confirm';
+      document.getElementById('modeBadge').textContent = 'window · redirected';
+    }
+
+    LCA.post({type:'hello', id:id, label:'PAY', url:location.href, title:document.title});
+    window.addEventListener('pagehide', function(){ LCA.post({type:'bye', id:id, label:'PAY'}); });
+
+    /* The window navigates itself after opening, so its title and URL at
+       step-record time are not the ones it settles on. */
+    if(redirect > 0 && step !== 'review'){
+      document.getElementById('closeNote').textContent = 'This window redirects to the review step in ' + redirect + ' ms.';
+      setTimeout(function(){
+        var q = new URLSearchParams(location.search);
+        q.set('step','review'); q.delete('redirect');
+        location.replace('pay.html?' + q.toString());
+      }, redirect);
+    }
+
+    function settle(text, ok, outcome){
+      var s = document.getElementById('payStatus');
+      s.textContent = text;
+      s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
+      document.getElementById('confirmPay').disabled = true;
+      document.getElementById('declinePay').disabled = true;
+      LCA.post({type:'payment', id:id, outcome:outcome, ref:REF, order:order, amount:amount});
+    }
+
+    document.getElementById('confirmPay').addEventListener('click', function(){
+      settle('Approved · ' + REF, true, 'approved');
+      if(!auto){
+        document.getElementById('closeNote').textContent =
+          'This window stays open — close it from the test, or switch back to the merchant window.';
+        return;
+      }
+      var left = 3;
+      var note = document.getElementById('closeNote');
+      note.textContent = 'Closing automatically in ' + left + 's…';
+      var t = setInterval(function(){
+        left--;
+        note.textContent = 'Closing automatically in ' + Math.max(left,0) + 's…';
+        if(left <= 0){
+          clearInterval(t);
+          LCA.post({type:'bye', id:id, label:'PAY'});
+          window.close();
+        }
+      }, 1000);
+    });
+
+    document.getElementById('declinePay').addEventListener('click', function(){
+      settle('Declined · ' + REF, false, 'declined');
+    });
+
+    /* A popup opening its own popup — the grandchild handle. */
+    document.getElementById('openOtp').addEventListener('click', function(){
+      LCA.open('otp.html?order=' + encodeURIComponent(order), 'securepay-otp', 'width=420,height=460');
+      document.getElementById('closeNote').textContent = 'OTP window opened from this window (depth 2).';
+    });
+  })();
+  </script>
+</body>
+</html>

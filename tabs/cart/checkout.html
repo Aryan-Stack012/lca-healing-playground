@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Cart · LCA Playground</title>
+<meta name="description" content="Smart-Tab path target at /tabs/cart/checkout — the exact-path winner in path-scoring scenarios.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/playground.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="brand" href="../../index.html" aria-label="Back to the playground hub">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+          <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" fill="none" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand__txt"><span class="brand__name">Self-Healing Playground</span><span class="brand__sub">tabs/cart/checkout.html</span></span>
+      </a>
+      <span class="badge badge--info">path · /cart/checkout</span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Tab <span id="tabLabel">A</span> · /cart/checkout</span>
+      <h1>Cart checkout</h1>
+      <p class="page__note">Path target for Smart-Tab scoring. Recording here and replaying against <code>/account/checkout</code> or <code>/store/cart/checkout</code> is how you separate a full-path match from a partial one.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Approve invoice</h2><span class="surface__meta" id="waiting">Control is live.</span></div>
+      <div class="surface__body stack">
+        <div class="field"><label for="note">Approval note (optional)</label><input id="note" name="note" placeholder="e.g. cleared by finance"></div>
+        <div class="inline">
+          <button id="approve" class="btn-primary">Approve invoice</button>
+          <button id="closeMe" class="decoy">Close this tab</button>
+        </div>
+        <p id="state" class="mono" role="status" aria-live="polite">Awaiting approval.</p>
+        <p id="closeState" class="meta" role="status" aria-live="polite"></p>
+        <p id="driftNote" class="meta" role="status" aria-live="polite"></p>
+        <p id="autoNote" class="meta" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Tab identity</h2><span class="surface__meta">what Smart Tab captures</span></div>
+      <div class="surface__body">
+        <div id="identity"></div>
+        <hr class="divider">
+        <pre id="snapshot" aria-label="Tab identity snapshot as JSON"></pre>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Sibling paths: <code>/tabs/account/checkout.html</code> · <code>/tabs/store/cart/checkout.html</code></p>
+      <a href="../../index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="../../assets/tabkit.js"></script>
+  <script src="../../assets/tabtarget.js"></script>
+</body>
+</html>

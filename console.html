@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom JS console · LCA Playground</title>
+<meta name="description" content="Surfaces that only a Custom-JS step can reach — canvas text, ::before content, shadow DOM, JS-only globals, async and throwing hooks — one snippet card per case.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="console.html">
+  <main id="main" tabindex="-1" class="wrap page">
+    <header class="page__head">
+      <span class="eyebrow">Custom JS · <span id="ctxLabel">context A</span></span>
+      <h1>Billing internals</h1>
+      <p class="page__note">Every value on this page is deliberately out of reach of a normal step — painted into a canvas, hidden in <code>::before</code>, sealed in a shadow root, or held only as a JS global. Each card carries the exact snippet to paste into a Custom-JS step, and a readout you can assert on afterwards. This is the one page in the playground that <em>breaks</em> the “live, self-describing DOM text” rule on purpose.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Installed hooks</h2><span class="live" data-state="healthy"><i></i>live</span></div>
+      <div class="surface__body">
+        <div id="hookMap"></div>
+        <span class="meta">The shared break flag moves these. Read this panel first — a snippet written against a healthy run will not resolve on a drifted one, and a Custom-JS step is never self-healed.</span>
+      </div>
+    </section>
+
+    <!-- ============ create variable ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Order reference</h2><span class="badge badge--info">type · create variable</span></div>
+      <div class="surface__body stack">
+        <p class="meta">The reference exists only as a JS global. Nothing renders it, so there is no element to extract from.</p>
+        <div class="snip">
+          <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns ORD-88231</span></div>
+          <pre class="snip__code" id="snipOrder">return window.__lcaOrder.id;</pre>
+        </div>
+        <hr class="divider">
+        <p class="meta">Round-trip the captured variable: type it back in and the page confirms the match.</p>
+        <div class="searchbar">
+          <input id="echoOrder" aria-label="Order reference" placeholder="paste the captured reference">
+          <button id="verifyOrder" class="btn-primary">Verify reference</button>
+        </div>
+        <p id="echoResult" class="mono" role="status" aria-live="polite">No reference submitted.</p>
+      </div>
+    </section>
+
+    <!-- ============ validation ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Stock ledger</h2><span class="badge badge--info">type · validation</span></div>
+      <div class="surface__body stack">
+        <p class="meta">Seven SKUs. The claim under test — “all seven are available” — is a DOM fact no single text assertion can express.</p>
+        <div class="items" id="ledger"></div>
+        <div class="snip">
+          <div class="snip__head"><span class="label">Custom JS · validation</span><span class="meta">returns true / false</span></div>
+          <pre class="snip__code" id="snipLedger">var rows = document.querySelectorAll('[data-sku]');
+return rows.length === 7 &&
+  Array.prototype.every.call(rows, function (r) {
+    return r.dataset.available === 'true';
+  });</pre>
+        </div>
+        <div class="inline">
+          <button id="breakOne">Mark one SKU unavailable</button>
+          <button id="resetLedger" class="decoy">Reset the ledger</button>
+        </div>
+        <p id="ledgerState" class="mono" role="status" aria-live="polite">7 of 7 SKUs available.</p>
+      </div>
+    </section>
+
+    <!-- ============ action ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Discount code</h2><span class="badge badge--info">type · action</span></div>
+      <div class="surface__body stack">
+        <p class="meta">The field is <code>readonly</code>, so a type step cannot fill it. Setting <code>.value</code> alone is not enough either — the page only reacts to a dispatched <code>input</code> event.</p>
+        <div class="field"><label for="discount">Discount code (locked)</label><input id="discount" class="locked" readonly value="" placeholder="applied by finance only"></div>
+        <div class="snip">
+          <div class="snip__head"><span class="label">Custom JS · action</span><span class="meta">SAVE20 → −$29.80</span></div>
+          <pre class="snip__code" id="snipDiscount">var f = document.getElementById('discount');
+f.value = 'SAVE20';
+f.dispatchEvent(new Event('input', { bubbles: true }));</pre>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="row__k">Subtotal</span><span class="row__v">$149.00</span></div>
+          <div class="row"><span class="row__k">Discount</span><span class="row__v" id="discountAmount">$0.00</span></div>
+          <div class="row row--total"><span class="row__k">Total due</span><span class="row__v" id="totalDue">$149.00</span></div>
+        </div>
+        <p id="discountState" class="mono" role="status" aria-live="polite">No discount applied.</p>
+      </div>
+    </section>
+
+    <!-- ============ canvas ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Statement</h2><span class="badge badge--warn">no DOM text at all</span></div>
+      <div class="surface__body stack">
+        <p class="meta">The balance is painted into a canvas. There is no text node and no accessibility node — the a11y snapshot sees an empty graphic, so the agent has to reach for Custom JS on its own.</p>
+        <div class="canvasbox"><canvas id="invoiceCanvas" width="520" height="120" role="img" aria-label="Account statement graphic"></canvas></div>
+        <div class="snip">
+          <div class="snip__head"><span class="label">Custom JS · create variable or validation</span><span class="meta">returns "Balance due $149.00"</span></div>
+          <pre class="snip__code" id="snipCanvas">return window.lcaReadCanvas();</pre>
+        </div>
+        <p id="canvasEcho" class="mono" role="status" aria-live="polite">Canvas not read yet.</p>
+        <button id="readCanvas" class="decoy">Read it into the page (manual check)</button>
+      </div>
+    </section>
+
+    <!-- ============ ::before + shadow DOM ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Encapsulated readouts</h2><span class="badge badge--warn">invisible to textContent</span></div>
+      <div class="surface__body stack">
+        <div>
+          <p class="meta">Generated content — the string lives in a CSS <code>content</code> property, not the DOM.</p>
+          <p id="slaBadge" class="mono"></p>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns the SLA string</span></div>
+            <pre class="snip__code" id="snipSla">return getComputedStyle(
+  document.getElementById('slaBadge'), '::before'
+).content;</pre>
+          </div>
+        </div>
+        <hr class="divider">
+        <div>
+          <p class="meta">A closed-off web component. The reading is inside its shadow root.</p>
+          <div id="meterHost"></div>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">returns 412 kWh</span></div>
+            <pre class="snip__code" id="snipMeter">return document.getElementById('meterHost')
+  .shadowRoot.getElementById('reading').textContent;</pre>
+          </div>
+        </div>
+        <hr class="divider">
+        <div>
+          <p class="meta">Browser storage — no DOM representation whatsoever.</p>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · validation</span><span class="meta">cart lock + account tier</span></div>
+            <pre class="snip__code" id="snipStore">return sessionStorage.getItem('lca.cart.locked') === 'false'
+  &amp;&amp; localStorage.getItem('lca.tier') === 'enterprise';</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ async / throw / volatile ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Awkward returns</h2><span class="badge badge--err">error paths</span></div>
+      <div class="surface__body stack">
+        <div>
+          <p class="meta"><strong>Async.</strong> Resolves after 1.2 s. A step that does not await it captures a Promise, not a quote.</p>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">resolves to Q-5591</span></div>
+            <pre class="snip__code" id="snipAsync">return window.lcaFetchQuote().then(function (r) {
+  return r.quote;
+});</pre>
+          </div>
+          <p id="quoteLog" class="mono" role="status" aria-live="polite">No quote requested.</p>
+        </div>
+        <hr class="divider">
+        <div>
+          <p class="meta"><strong>Throws.</strong> The step must fail with the message surfaced — never pass quietly.</p>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · any type</span><span class="meta">throws “ledger locked”</span></div>
+            <pre class="snip__code" id="snipBoom">return window.lcaBoom();</pre>
+          </div>
+        </div>
+        <hr class="divider">
+        <div>
+          <p class="meta"><strong>Volatile.</strong> A new ticket on every call. If a saved step ever returns the same ticket twice, it froze the value instead of re-running.</p>
+          <div class="snip">
+            <div class="snip__head"><span class="label">Custom JS · create variable</span><span class="meta">TKT-1, TKT-2, TKT-3 …</span></div>
+            <pre class="snip__code" id="snipTicket">return window.lcaTicket();</pre>
+          </div>
+          <p id="ticketLog" class="mono" role="status" aria-live="polite">No ticket issued.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ cross-context ============ -->
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Which context did the JS run in?</h2><span class="badge badge--info">tab + Custom JS</span></div>
+      <div class="surface__body stack">
+        <p class="meta">The second tab is this same page with a different order reference. Run the create-variable snippet after switching and the value tells you which document the step actually executed against.</p>
+        <div class="rows">
+          <div class="row"><span class="row__k">This context</span><span class="row__v" id="ctxName">A</span></div>
+          <div class="row"><span class="row__k">Reference here</span><span class="row__v" id="ctxRef">hidden — JS only</span></div>
+        </div>
+        <button id="openConsoleB">Open context B in a new tab</button>
+        <p id="ctxState" class="mono" role="status" aria-live="polite">Context B not opened.</p>
+        <span class="meta">Context A holds <code>ORD-88231</code>; context B holds <code>ORD-99117</code>. Same snippet, different answer.</span>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Three Custom-JS types: <strong>action</strong> · <strong>validation</strong> · <strong>create variable</strong>. Every snippet above is copy-paste ready.</p>
+      <a href="index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/tabkit.js"></script>
+  <script>
+  (function(){
+    var CTX   = (new URLSearchParams(location.search)).get('ctx') === 'B' ? 'B' : 'A';
+    var ORDER = CTX === 'B' ? 'ORD-99117' : 'ORD-88231';
+    document.getElementById('ctxLabel').textContent = 'context ' + CTX;
+    document.getElementById('ctxName').textContent  = CTX;
+    if(CTX === 'B') document.title = 'Custom JS console — context B · LCA Playground';
+
+    /* ---------------- ledger ---------------- */
+    var SKUS = [
+      ['NW-1001','Enterprise licence'], ['NW-1002','Priority support'],
+      ['NW-1003','Additional seat'],    ['NW-1004','Audit log retention'],
+      ['NW-1005','SSO connector'],      ['NW-1006','Sandbox project'],
+      ['NW-1007','Data residency add-on']
+    ];
+    function paintLedger(){
+      document.getElementById('ledger').innerHTML = SKUS.map(function(s){
+        return '<div class="item" data-sku="' + s[0] + '" data-available="true">' +
+          '<span class="thumb">' + s[0].slice(-2) + '</span>' +
+          '<span><span class="item__name">' + s[1] + '</span>' +
+          '<span class="item__meta">' + s[0] + '</span></span>' +
+          '<span class="item__price">in stock</span></div>';
+      }).join('');
+      reportLedger();
+    }
+    function reportLedger(){
+      var rows = document.querySelectorAll('[data-sku]');
+      var ok = 0;
+      Array.prototype.forEach.call(rows, function(r){ if(r.dataset.available === 'true') ok++; });
+      var s = document.getElementById('ledgerState');
+      s.textContent = ok + ' of ' + rows.length + ' SKUs available.';
+      s.className = 'mono ' + (ok === rows.length ? 'is-ok' : 'is-bad');
+    }
+    paintLedger();
+
+    document.getElementById('breakOne').addEventListener('click', function(){
+      var row = document.querySelector('[data-sku][data-available="true"]');
+      if(!row) return;
+      row.dataset.available = 'false';
+      row.querySelector('.item__price').textContent = 'backordered';
+      reportLedger();
+    });
+    document.getElementById('resetLedger').addEventListener('click', paintLedger);
+
+    /* ---------------- discount (action) ----------------
+       Only an input event applies it — setting .value silently does nothing,
+       which is the trap a Custom-JS action step has to get right. */
+    document.getElementById('discount').addEventListener('input', function(){
+      var code = this.value.trim().toUpperCase();
+      var pct  = code === 'SAVE20' ? 0.20 : (code === 'SAVE10' ? 0.10 : 0);
+      var off  = 149 * pct;
+      var st   = document.getElementById('discountState');
+      document.getElementById('discountAmount').textContent = '−$' + off.toFixed(2);
+      document.getElementById('totalDue').textContent = '$' + (149 - off).toFixed(2);
+      if(pct){
+        st.textContent = 'Discount ' + code + ' applied · −$' + off.toFixed(2) + ' · total $' + (149 - off).toFixed(2);
+        st.className = 'mono is-ok';
+      }else{
+        st.textContent = 'Code "' + code + '" is not recognised.';
+        st.className = 'mono is-bad';
+      }
+    });
+
+    /* ---------------- canvas ---------------- */
+    var BALANCE = 'Balance due $149.00';
+    (function(){
+      var c = document.getElementById('invoiceCanvas'), g = c.getContext('2d');
+      g.fillStyle = '#0C111E'; g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = '#8A97AE'; g.font = '13px ui-monospace, monospace';
+      g.fillText('NORTHWIND LICENSING · STATEMENT', 22, 34);
+      g.fillStyle = '#E8EDF7'; g.font = '600 26px ui-sans-serif, system-ui, sans-serif';
+      g.fillText(BALANCE, 22, 76);
+      g.strokeStyle = '#233048'; g.strokeRect(.5, .5, c.width - 1, c.height - 1);
+    })();
+    document.getElementById('readCanvas').addEventListener('click', function(){
+      var e = document.getElementById('canvasEcho');
+      e.textContent = 'Canvas reads: ' + BALANCE;
+      e.className = 'mono is-ok';
+    });
+
+    /* ---------------- shadow DOM meter ---------------- */
+    (function(){
+      var sh = document.getElementById('meterHost').attachShadow({mode:'open'});
+      sh.innerHTML =
+        '<style>.m{display:flex;align-items:baseline;gap:10px;padding:14px 16px;border:1px solid #233048;' +
+        'border-radius:10px;background:#0C111E;font-family:ui-sans-serif,system-ui,sans-serif}' +
+        '.v{font:700 22px ui-monospace,monospace;color:#E8EDF7}.u{font-size:12px;color:#8A97AE}</style>' +
+        '<div class="m"><span class="v" id="reading">412 kWh</span><span class="u">metered this cycle</span></div>';
+    })();
+
+    /* ---------------- storage ---------------- */
+    try{
+      sessionStorage.setItem('lca.cart.locked', 'false');
+      localStorage.setItem('lca.tier', 'enterprise');
+    }catch(e){}
+
+    /* ---------------- JS-only hooks ----------------
+       healthy : the names every snippet on this page is written against
+       drift   : the same functions, relocated under window.lca.v2, old names deleted
+       gone    : nothing installed at all
+       A Custom-JS step is outside the self-healer's 7 action types, so a
+       drifted hook has to fail cleanly rather than quietly recover. */
+    var tickets = 0;
+    var api = {
+      __lcaOrder:   {id: ORDER, total: 149.00, currency: 'USD', context: CTX},
+      lcaReadCanvas: function(){ return BALANCE; },
+      lcaFetchQuote: function(){
+        return new Promise(function(res){
+          setTimeout(function(){
+            var q = document.getElementById('quoteLog');
+            q.textContent = 'Quote issued · Q-5591';
+            q.className = 'mono is-ok';
+            res({quote: 'Q-5591', validFor: '30 days'});
+          }, 1200);
+        });
+      },
+      lcaBoom: function(){ throw new Error('ledger locked'); },
+      lcaTicket: function(){
+        tickets++;
+        var v = 'TKT-' + tickets;
+        var l = document.getElementById('ticketLog');
+        l.textContent = 'Tickets issued (' + tickets + '): ' +
+          Array.apply(null, {length: tickets}).map(function(_, i){ return 'TKT-' + (i + 1); }).join(', ');
+        l.className = 'mono is-ok';
+        return v;
+      }
+    };
+
+    lcaResolve().then(function(r){
+      var names = Object.keys(api);
+      var where;
+      if(r.state === 'healthy'){
+        names.forEach(function(n){ window[n] = api[n]; });
+        where = names.map(function(n){ return 'window.' + n; });
+      }else if(r.state === 'drift'){
+        window.lca = {v2: {}};
+        names.forEach(function(n){ window.lca.v2[n.replace(/^__lca|^lca/, '').toLowerCase() || 'order'] = api[n]; });
+        where = Object.keys(window.lca.v2).map(function(n){ return 'window.lca.v2.' + n; });
+      }else{
+        where = [];
+      }
+
+      var map = document.getElementById('hookMap');
+      var copy = {
+        healthy: 'Healthy — every snippet on this page resolves as written.',
+        drift:   'Drifted — the hooks moved and the original names were deleted. Snippets recorded against a healthy run now throw.',
+        gone:    'Gone — no hooks are installed. Every snippet on this page fails.'
+      };
+      map.innerHTML =
+        '<p class="mono ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad') + '" id="hookState">' +
+        LCA.esc(copy[r.state]) + ' (source: ' + LCA.esc(r.source) + ')</p>' +
+        (where.length
+          ? '<div class="rows">' + where.map(function(w, i){
+              return '<div class="row"><span class="row__k">hook ' + (i + 1) +
+                     '</span><span class="row__v">' + LCA.esc(w) + '</span></div>';
+            }).join('') + '</div>'
+          : '<p class="meta">Nothing to list.</p>');
+    });
+
+    /* ---------------- reference round-trip ---------------- */
+    document.getElementById('verifyOrder').addEventListener('click', function(){
+      var typed = document.getElementById('echoOrder').value.trim();
+      var e = document.getElementById('echoResult');
+      var ok = typed === ORDER;
+      e.textContent = ok
+        ? ('Reference matches: ' + ORDER)
+        : ('Reference mismatch — expected ' + ORDER + ', got "' + typed + '"');
+      e.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
+    });
+
+    /* ---------------- context B ---------------- */
+    LCA.registry(document.createElement('div'));   // keeps the open registry warm
+    document.getElementById('openConsoleB').addEventListener('click', function(){
+      var rec = LCA.open('console.html?ctx=B', '_blank');
+      var s = document.getElementById('ctxState');
+      s.textContent = rec.blocked
+        ? 'Context B was blocked by the browser.'
+        : 'Context B opened in a new tab — its reference is ORD-99117.';
+      s.className = 'mono ' + (rec.blocked ? 'is-bad' : 'is-ok');
+    });
+  })();
+  </script>
+</body>
+</html>

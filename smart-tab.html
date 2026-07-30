@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Tab Handling · LCA Playground</title>
+<meta name="description" content="Scenarios that break index-based tab handling — flipped open order, tracking params, sibling paths, fragments, title drift — with a live score oracle that computes the spec's arithmetic for every open tab.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="smart-tab.html">
+  <main id="main" tabindex="-1" class="wrap page">
+    <header class="page__head">
+      <span class="eyebrow">Smart Tab Handling · TB</span>
+      <h1>Tab identity lab</h1>
+      <p class="page__note">Every launcher here opens a tab whose <em>identity</em> differs from the recorded baseline in exactly one controlled way. The scoreboard runs the spec's arithmetic live against each open tab, so you can compare what the product picked with what the rules say it should have picked — without doing the maths by hand.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Recorded baseline</h2><span class="badge badge--info">the step's captured tab</span></div>
+      <div class="surface__body">
+        <div id="baseline"></div>
+        <span class="meta">Record your step against this tab. Everything the scoreboard reports is scored relative to it.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Score oracle</h2><span class="live" data-state="healthy"><i></i>live</span></div>
+      <div class="surface__body">
+        <p id="verdict" class="mono" role="status" aria-live="polite">No candidate tabs open yet.</p>
+        <div id="scoreboard"></div>
+      </div>
+      <div class="surface__foot">
+        <p class="meta">Weights: full path <strong>+10</strong> · path segments <strong>(matched ÷ recorded) × 10</strong> · query key+value <strong>+5</strong> · query key only <strong>+2</strong> · SPA fragment <strong>+6</strong> · anchor fragment <strong>+3</strong> · exact title <strong>+2</strong>. Domain is captured but never scored.</p>
+        <p class="meta">Two things this oracle assumes, because the spec does not pin them down — segments are matched order-independently, and the denominator is the <em>recorded</em> segment count. If the product disagrees, that gap is a finding, not a bug in this page.</p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Launchers</h2><span class="surface__meta">one variable each</span></div>
+      <div class="surface__body stack" id="launchers"></div>
+      <div class="surface__foot"><p id="launchState" class="mono" role="status" aria-live="polite">Nothing launched yet.</p></div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Tabs this page opened</h2><span class="surface__meta">open order · live status</span></div>
+      <div class="surface__body"><div id="registry"></div></div>
+      <div class="surface__foot"><p class="meta" id="flagNote">Reading the shared break flag…</p></div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Paths: <code>tabs/cart/checkout.html</code> · <code>tabs/account/checkout.html</code> · <code>tabs/store/cart/checkout.html</code> · <code>tabs/target.html</code></p>
+      <a href="index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/tabkit.js"></script>
+  <script>
+  (function(){
+    /* ---------------- the recorded baseline ----------------
+       Titles are derived by tabtarget.js from the path, so the baseline
+       title is deterministic and can be hardcoded here. */
+    var BASE_URL   = 'tabs/cart/checkout.html?order=A1&user=ABC';
+    var BASE_TITLE = 'Checkout — Cart · Tab A';
+    var recorded   = LCA.identity(new URL(BASE_URL, location.href), BASE_TITLE);
+
+    function idRows(id, extra){
+      var h = '<div class="rows">';
+      h += '<div class="row"><span class="row__k">Title</span><span class="row__v">' + LCA.esc(id.title) + '</span></div>';
+      h += '<div class="row"><span class="row__k">Full path</span><span class="row__v">' + LCA.esc(id.path) + '</span></div>';
+      h += '<div class="row"><span class="row__k">Segments</span><span class="row__v">[' + LCA.esc(id.segments.join(', ')) + ']</span></div>';
+      id.query.forEach(function(p){
+        h += '<div class="row"><span class="row__k">Query · ' + LCA.esc(p.key) + '</span><span class="row__v">' +
+             LCA.esc(p.value) + ' <span class="meta">' + (p.tracking ? 'tracking · ignored' : 'scored') + '</span></span></div>';
+      });
+      h += '<div class="row"><span class="row__k">Fragment</span><span class="row__v">' + LCA.esc(id.fragment || '(none)') + '</span></div>';
+      if(extra) h += extra;
+      return h + '</div>';
+    }
+    document.getElementById('baseline').innerHTML = idRows(recorded);
+
+    /* ---------------- launchers ----------------
+       Control params (tab, title, titledrift, autoclose) are ordinary query
+       params as far as the algorithm is concerned, so each set holds them
+       constant — the only thing that moves within a set is the variable
+       the set is named after. */
+    var TRACK = '&utm_source=newsletter&utm_medium=email&gclid=Cj0KEQjw&fbclid=IwAR9x';
+    var SETS = [
+      {group:'A · Index fragility — the cases that break today', items:[
+        {act:'pair',  label:'Open the pair (order flips with the flag)', note:'Healthy: /cart then /account. Drifted: /account then /cart. Same click, same URLs, opposite indices.'},
+        {act:'open',  label:'Insert a Notifications tab', url:'tabs/target.html?tab=N&title=Notifications%20%C2%B7%20LCA%20Playground', note:'Stands in for a step added before the target — every later index shifts by one.'},
+        {act:'open',  label:'Open a tab that closes itself in 5 s', url:'tabs/target.html?tab=D&autoclose=5000', note:'Every later index shifts down when it goes.'}
+      ]},
+      {group:'B · Tracking params must be ignored', items:[
+        {act:'open', label:'Clean baseline URL',            url:BASE_URL,         note:'Identical to the recording. Expected score: the maximum.'},
+        {act:'open', label:'Same page + utm / gclid / fbclid', url:BASE_URL+TRACK, note:'Must score exactly the same as the clean URL. A URL-equality match fails here.'}
+      ]},
+      {group:'C · Path scoring', items:[
+        {act:'open', label:'/cart/checkout — exact path',        url:'tabs/cart/checkout.html?order=A1&user=ABC',       note:'Full path match → +10, plus every segment.'},
+        {act:'open', label:'/account/checkout — sibling path',   url:'tabs/account/checkout.html?order=A1&user=ABC',    note:'Shares the leaf only. No full-path points; partial segments.'},
+        {act:'open', label:'/store/cart/checkout — superset path', url:'tabs/store/cart/checkout.html?order=A1&user=ABC', note:'Contains both cart and checkout — the highest partial score, and still must lose to the exact path.'}
+      ]},
+      {group:'D · Query-param scoring', items:[
+        {act:'open', label:'order=A1 & user=ABC — both match', url:'tabs/cart/checkout.html?order=A1&user=ABC', note:'Two key+value hits → +5 each.'},
+        {act:'open', label:'order=A1 & user=ZZZ — one value differs', url:'tabs/cart/checkout.html?order=A1&user=ZZZ', note:'+5 for order, +2 for the user key only.'},
+        {act:'open', label:'order=A1 only — one param absent', url:'tabs/cart/checkout.html?order=A1', note:'+5 for order, nothing for the missing user.'}
+      ]},
+      {group:'E · Fragment scoring', items:[
+        {act:'open', label:'SPA route #/dashboard/home', url:'tabs/cart/checkout.html?order=A1&user=ABC#/dashboard/home', note:'Leading slash → treated as a route, weight 6.'},
+        {act:'open', label:'Anchor #authentication',     url:'tabs/cart/checkout.html?order=A1&user=ABC#authentication',  note:'Plain anchor, weight 3.'}
+      ]},
+      {group:'F · Title as tiebreaker', items:[
+        {act:'open', label:'Same path, matching title',  url:'tabs/cart/checkout.html?order=A1&user=ABC&tab=A', note:'Title matches the recording → +2.'},
+        {act:'open', label:'Same path, different title', url:'tabs/cart/checkout.html?order=A1&user=ABC&tab=Z', note:'Title differs → no +2. The gap also includes the tab param, so read the breakdown, not just the total.'}
+      ]},
+      {group:'G · Properties that move after load', items:[
+        {act:'open', label:'Title mutates 2.5 s after load', url:'tabs/cart/checkout.html?order=A1&user=ABC&titledrift=2500', note:'Capture the properties too late and the title no longer matches. Watch the score drop live.'},
+        {act:'open', label:'Control arms 4 s after load',     url:'tabs/cart/checkout.html?order=A1&user=ABC&slow=4000',     note:'The tab exists before it is usable — a switch that lands too early finds a disabled control.'}
+      ]},
+      {group:'H · Twins', items:[
+        {act:'open', label:'Identical twin of the baseline', url:BASE_URL, note:'Same path, same query, same title. Scores tie — only the recorded index can break it.'}
+      ]}
+    ];
+
+    var lmount = document.getElementById('launchers');
+    lmount.innerHTML = SETS.map(function(set, si){
+      return '<div class="lset">' +
+        '<h3 class="lset__head">' + LCA.esc(set.group) + '</h3>' +
+        '<div class="grid2">' + set.items.map(function(it, ii){
+          return '<div class="stack">' +
+            '<button data-act="' + it.act + '" data-url="' + LCA.esc(it.url || '') + '" data-si="' + si + '-' + ii + '">' +
+            LCA.esc(it.label) + '</button>' +
+            '<span class="meta">' + LCA.esc(it.note) + '</span></div>';
+        }).join('') + '</div></div>';
+    }).join('');
+
+    var launchState = document.getElementById('launchState');
+    function say(msg, bad){
+      launchState.textContent = msg;
+      launchState.className = 'mono ' + (bad ? 'is-bad' : 'is-ok');
+    }
+
+    LCA.registry(document.getElementById('registry'));
+
+    /* ---------------- scoreboard ---------------- */
+    var candidates = [];   // {id, url, title, closed}
+
+    function rescore(){
+      var board = document.getElementById('scoreboard');
+      var live = candidates.filter(function(c){ return !c.closed; });
+      if(!live.length){
+        board.innerHTML = '';
+        document.getElementById('verdict').textContent = 'No candidate tabs open yet.';
+        document.getElementById('verdict').className = 'mono';
+        return;
+      }
+
+      var scored = live.map(function(c, i){
+        var id = LCA.identity(new URL(c.url, location.href), c.title);
+        return {n: i + 1, c: c, id: id, s: LCA.score(recorded, id)};
+      });
+      var best = Math.max.apply(null, scored.map(function(x){ return x.s.total; }));
+      var winners = scored.filter(function(x){ return x.s.total === best; });
+
+      board.innerHTML = scored.map(function(x){
+        var isWin = x.s.total === best;
+        return '<div class="scorecard" data-win="' + (isWin && winners.length === 1) + '">' +
+          '<div class="scorecard__head">' +
+            '<span class="scorecard__n mono">tab ' + x.n + '</span>' +
+            '<span class="scorecard__t">' + LCA.esc(x.id.title) + '</span>' +
+            '<span class="badge ' + (isWin ? 'badge--ok' : '') + '">' + x.s.total + ' pts</span>' +
+          '</div>' +
+          '<p class="scorecard__u mono">' + LCA.esc(x.id.path + (x.id.query.length ? '?' + x.id.query.map(function(p){return p.key+'='+p.value;}).join('&') : '') + x.id.fragment) + '</p>' +
+          '<div class="rows">' + x.s.parts.map(function(p){
+            return '<div class="row"><span class="row__k">' + LCA.esc(p.label) + '</span>' +
+              '<span class="row__v">' + (p.points ? '+' + p.points : '—') +
+              (p.detail ? ' <span class="meta">' + LCA.esc(p.detail) + '</span>' : '') + '</span></div>';
+          }).join('') + '</div></div>';
+      }).join('');
+
+      var v = document.getElementById('verdict');
+      if(winners.length === 1){
+        v.textContent = 'Expected winner: tab ' + winners[0].n + ' · ' + winners[0].id.title + ' · ' + best + ' pts';
+        v.className = 'mono is-ok';
+      }else{
+        v.textContent = 'Tie at ' + best + ' pts across ' + winners.length +
+          ' tabs — the spec falls back to the recorded tab index, and then to the previously active tab.';
+        v.className = 'mono is-bad';
+      }
+    }
+
+    LCA.on(function(msg){
+      if(msg.type === 'hello'){
+        candidates.push({id: msg.id, url: msg.url, title: msg.title, closed: false});
+        rescore();
+      }else if(msg.type === 'title'){
+        candidates.forEach(function(c){ if(c.id === msg.id) c.title = msg.title; });
+        rescore();
+      }else if(msg.type === 'bye'){
+        candidates.forEach(function(c){ if(c.id === msg.id) c.closed = true; });
+        rescore();
+      }
+    });
+
+    /* ---------------- the break: open order ---------------- */
+    lcaResolve().then(function(r){
+      var note = document.getElementById('flagNote');
+      var copy = {
+        healthy: 'Flag healthy — the pair opens /cart/checkout first, then /account/checkout.',
+        drift:   'Flag drifted — the pair opens /account/checkout first. Index 1 is now the wrong page, and nothing about the click changed.',
+        gone:    'Flag gone — the pair opens /account/checkout only. The recorded tab never appears.'
+      };
+      note.textContent = copy[r.state] + ' (source: ' + r.source + ')';
+      note.className = 'meta ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad');
+
+      lmount.addEventListener('click', function(ev){
+        var btn = ev.target.closest('button[data-act]');
+        if(!btn) return;
+
+        if(btn.dataset.act === 'open'){
+          var rec = LCA.open(btn.dataset.url, '_blank');
+          say(rec.blocked ? 'window.open returned null — the browser blocked it.' : ('Opened ' + btn.dataset.url), rec.blocked);
+          return;
+        }
+
+        /* Both opens stay in this handler — a deferred window.open loses
+           the user gesture and gets popup-blocked. */
+        var cart = 'tabs/cart/checkout.html?order=A1&user=ABC';
+        var acct = 'tabs/account/checkout.html?order=A1&user=ABC';
+        if(r.state === 'healthy'){
+          LCA.open(cart, '_blank'); LCA.open(acct, '_blank');
+          say('Opened /cart/checkout at index 1, /account/checkout at index 2.');
+        }else if(r.state === 'drift'){
+          LCA.open(acct, '_blank'); LCA.open(cart, '_blank');
+          say('Opened /account/checkout at index 1, /cart/checkout at index 2 — the recorded order is inverted.', true);
+        }else{
+          LCA.open(acct, '_blank');
+          say('Opened /account/checkout only. The recorded /cart/checkout tab is absent.', true);
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

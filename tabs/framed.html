@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hosted approval — framed · LCA Playground</title>
+<meta name="description" content="A tab target whose only control lives inside an iframe — the composite case where a step needs a tab switch and then a frame switch, in that order.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="brand" href="../index.html" aria-label="Back to the playground hub">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#0C111E" stroke="#233048"/>
+          <path d="M5 21 H13 L16 12 L20 28 L24 16 L26 21 H35" fill="none" stroke="#3FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand__txt"><span class="brand__name">Self-Healing Playground</span><span class="brand__sub">tabs/framed.html</span></span>
+      </a>
+      <span class="badge badge--info">tab + iframe</span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Tab <span id="tabLabel">F</span> · nested context</span>
+      <h1>Hosted approval</h1>
+      <p class="page__note">Nothing on this page is clickable. The approve control is served from an iframe, so a step here needs a tab switch <em>and then</em> a frame switch — and the frame context must be dropped again when the run switches back to the first tab.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Hosted approval widget</h2><span class="badge badge--info">iframe · #approvalFrame</span></div>
+      <div class="surface__body stack">
+        <iframe id="approvalFrame" title="Hosted approval widget" class="frame" style="height:120px"></iframe>
+        <p id="frameEcho" class="mono" role="status" aria-live="polite">Frame idle.</p>
+        <span class="meta">The button lives in the frame document. The echo above is written by the parent when the frame reports back.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Tab identity</h2><span class="surface__meta">what Smart Tab captures</span></div>
+      <div class="surface__body">
+        <div id="identity"></div>
+        <hr class="divider">
+        <pre id="snapshot" aria-label="Tab identity snapshot as JSON"></pre>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Opened from <code>tabs.html</code>. Handoff code: <code id="handoffCode">HANDOFF-F</code></p>
+      <a href="../index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="../assets/tabkit.js"></script>
+  <script src="../assets/tabtarget.js"></script>
+  <script>
+  /* The frame is same-origin (srcdoc), so its button can call back into the
+     parent's LCA channel directly — the handoff still reaches the opener tab. */
+  (function(){
+    var code = (new URLSearchParams(location.search)).get('code') || 'HANDOFF-F';
+    var frame = document.getElementById('approvalFrame');
+    var echo  = document.getElementById('frameEcho');
+
+    window.lcaFrameApproved = function(){
+      echo.textContent = 'Approved inside the frame · ' + code;
+      echo.className = 'is-ok';
+      LCA.post({type:'handoff', id:'framed', label:'F', code:code, note:'via iframe', title:document.title});
+    };
+
+    frame.srcdoc =
+      '<!doctype html><html lang="en"><body style="margin:0;display:flex;align-items:center;gap:14px;padding:18px;' +
+      'font-family:ui-sans-serif,system-ui,sans-serif;background:#0C111E;color:#8A97AE">' +
+      '<button id="frameApprove" style="font:600 15px system-ui;background:#5BC8FF;color:#04202C;border:0;' +
+      'border-radius:10px;padding:11px 18px;cursor:pointer">Approve in frame</button>' +
+      '<span id="frameState" role="status" aria-live="polite" style="font:600 13px ui-monospace,monospace">Awaiting approval.</span>' +
+      '<script>document.getElementById("frameApprove").addEventListener("click",function(){' +
+      'document.getElementById("frameState").textContent="Approved in frame";' +
+      'document.getElementById("frameState").style.color="#3FE0A6";' +
+      'this.disabled=true;this.textContent="Approved";' +
+      'try{parent.lcaFrameApproved()}catch(e){}' +
+      '});<\/script></body></html>';
+  })();
+  </script>
+</body>
+</html>

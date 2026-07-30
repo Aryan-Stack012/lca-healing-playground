@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecurePay · OTP verification</title>
+<meta name="description" content="A grandchild popup opened from the payment window — window depth 2, with a fixed OTP so it can be asserted exactly.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/playground.css">
+</head>
+<body>
+  <main id="main" tabindex="-1" class="wrap narrow page" style="padding-top:var(--s5)">
+    <header class="page__head">
+      <span class="eyebrow">SecurePay · step 2 of 2</span>
+      <h1>Verify with OTP</h1>
+      <p class="page__note">Opened <em>from the payment window</em>, so this is a grandchild window — depth 2 in the handle tree.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">One-time passcode</h2><span class="badge badge--info">window · depth 2</span></div>
+      <div class="surface__body stack">
+        <p class="meta">Sent to the cardholder’s device:</p>
+        <p class="otp" id="otpCode">902137</p>
+        <div class="field"><label for="otpInput">Enter the passcode</label><input id="otpInput" inputmode="numeric" placeholder="6 digits"></div>
+        <div class="inline">
+          <button id="submitOtp" class="btn-primary">Submit passcode</button>
+          <button id="closeOtp" class="decoy">Close this window</button>
+        </div>
+        <p id="otpStatus" class="mono" role="status" aria-live="polite">Awaiting passcode.</p>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p class="meta">The passcode is fixed at <code>902137</code> — a wrong entry is a real validation failure.</p>
+      <a href="../index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="../assets/tabkit.js"></script>
+  <script>
+  (function(){
+    var CODE = '902137';
+    var order = (new URLSearchParams(location.search)).get('order') || 'INV-4417';
+    var id = 'otp-' + Date.now().toString(36);
+    document.title = 'SecurePay · OTP ' + order;
+
+    LCA.post({type:'hello', id:id, label:'OTP', url:location.href, title:document.title});
+    window.addEventListener('pagehide', function(){ LCA.post({type:'bye', id:id, label:'OTP'}); });
+
+    document.getElementById('submitOtp').addEventListener('click', function(){
+      var typed = document.getElementById('otpInput').value.trim();
+      var s = document.getElementById('otpStatus');
+      var ok = typed === CODE;
+      s.textContent = ok ? ('OTP accepted · ' + CODE) : ('OTP rejected · expected ' + CODE + ', got "' + typed + '"');
+      s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
+      LCA.post({type:'otp', id:id, accepted:ok, code:CODE, order:order});
+    });
+
+    document.getElementById('closeOtp').addEventListener('click', function(){
+      LCA.post({type:'bye', id:id, label:'OTP'});
+      window.close();
+    });
+  })();
+  </script>
+</body>
+</html>

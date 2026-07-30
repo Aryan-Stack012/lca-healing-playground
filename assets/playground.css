@@ -350,6 +350,69 @@ pre{
   .surface__body{padding:var(--s4)}
 }
 
+/* ============================================================
+   Multi-tab / multi-window / Custom-JS surfaces
+   (tabs.html, windows.html, smart-tab.html, console.html and the
+   target documents under tabs/ and windows/)
+   ============================================================ */
+
+/* paired launcher buttons + their captions */
+.grid2{display:grid; grid-template-columns:1fr; gap:var(--s4)}
+@media (min-width:680px){ .grid2{grid-template-columns:1fr 1fr} }
+.grid2 .stack{gap:var(--s2)}
+.grid2 button, .grid2 .dl-btn{width:100%; justify-content:center; text-align:center}
+
+/* launcher set: a titled group of related launchers */
+.lset + .lset{margin-top:var(--s5); padding-top:var(--s5); border-top:1px solid var(--line-soft)}
+.lset__head{font-family:var(--font-mono); font-size:var(--fs-75); font-weight:500; letter-spacing:var(--track-micro);
+  text-transform:uppercase; color:var(--signal); margin:0 0 var(--s4)}
+
+/* registry of opened tabs / windows — open order is the load-bearing column */
+.reg{display:flex; flex-direction:column; border:1px solid var(--line-soft); border-radius:var(--r-sm); overflow:hidden}
+.reg__row{display:grid; grid-template-columns:auto auto minmax(0,1fr) minmax(0,1fr) auto; gap:var(--s3);
+  align-items:center; padding:var(--s3) var(--s4); border-bottom:1px solid var(--line-soft); background:var(--ink-2)}
+.reg__row:last-child{border-bottom:0}
+.reg__row[data-status="closed"]{opacity:.62}
+.reg__n{color:var(--faint); font-size:var(--fs-75); font-variant-numeric:tabular-nums}
+.reg__title{font-size:var(--fs-100); color:var(--text)}
+.reg__url{font-size:var(--fs-75); color:var(--muted)}
+.reg__title, .reg__url{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.reg__empty, .reg__sum{margin:var(--s3) 0 0; font-family:var(--font-mono); font-size:var(--fs-75); color:var(--faint)}
+.reg__empty{margin-top:0}
+@media (max-width:640px){
+  .reg__row{grid-template-columns:auto auto 1fr; row-gap:var(--s2)}
+  .reg__url{grid-column:1 / -1}
+}
+
+/* score oracle: one card per candidate tab, breakdown as key/value rows */
+.scorecard{border:1px solid var(--line-soft); border-radius:var(--r-sm); background:var(--ink-2); padding:var(--s4)}
+.scorecard + .scorecard{margin-top:var(--s3)}
+.scorecard[data-win="true"]{border-color:color-mix(in srgb,var(--healthy) 45%,var(--line)); background:var(--healthy-dim)}
+.scorecard__head{display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s2)}
+.scorecard__n{font-size:var(--fs-75); color:var(--faint); flex:none}
+.scorecard__t{font-size:var(--fs-100); color:var(--text); font-weight:500; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.scorecard__u{margin:0 0 var(--s3); font-size:var(--fs-75); color:var(--muted); word-break:break-all}
+
+/* Custom-JS snippet card — copy-paste ready */
+.snip{border:1px solid var(--line-soft); border-radius:var(--r-sm); background:var(--ink-2); overflow:hidden}
+.snip__head{display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  padding:var(--s2) var(--s4); border-bottom:1px solid var(--line-soft); background:var(--panel)}
+.snip__code{border:0; border-radius:0; background:transparent; padding:var(--s4); margin:0;
+  font-size:var(--fs-100); color:var(--signal-hi); white-space:pre; overflow-x:auto}
+
+/* canvas statement: no text node, no accessibility node */
+.canvasbox{border:1px solid var(--line); border-radius:var(--r-sm); background:var(--ink-2); padding:var(--s3); overflow-x:auto}
+.canvasbox canvas{display:block; max-width:100%; height:auto}
+
+/* readonly field that only a Custom-JS action can fill */
+.locked{border-style:dashed !important; color:var(--faint) !important}
+
+/* generated content — reachable only through getComputedStyle */
+#slaBadge{margin:0}
+#slaBadge::before{content:"SLA 99.95% · 30-day service credit"; font-family:var(--font-mono);
+  font-size:var(--fs-100); color:var(--healthy)}
+
 /* ---------------- reduced motion (complete: kills transitions + animations) ---------------- */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{

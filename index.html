@@ -7,7 +7,7 @@
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
 <meta property="og:title" content="LCA Self-Healing Playground">
-<meta property="og:description" content="Break a locator on demand and watch the heal fire — 34 cases, 12 target pages, one shared flag, same URL throughout.">
+<meta property="og:description" content="Break a locator on demand and watch the heal fire — 50 cases, 18 target pages, one shared flag, same URL throughout.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
@@ -419,7 +419,7 @@ tbody tr:hover{background:var(--ink-2)}
   <section class="section reveal" aria-labelledby="caseH">
     <div class="section__head">
       <h2 id="caseH">Case matrix</h2>
-      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S36</span>
+      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S50</span>
     </div>
     <div class="filters" role="group" aria-label="Filter cases by behavior">
       <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases" aria-controls="caseBody">
@@ -432,7 +432,7 @@ tbody tr:hover{background:var(--ink-2)}
     <div class="tablewrap">
       <div class="tablescroll">
         <table>
-          <caption class="sr-only">36 self-healing test cases by target page and expected behavior</caption>
+          <caption class="sr-only">50 self-healing test cases by target page and expected behavior</caption>
           <thead><tr><th style="width:84px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
           <tbody id="caseBody"></tbody>
         </table>
@@ -472,7 +472,11 @@ var SCENARIOS = [
   {file:"cookie.html",     o:"app",    title:"Browser config",     desc:"Echoes the cookies and localStorage the run actually sees. Confirms a heal run still carries your configured state.", params:["demoConfig"]},
   {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]},
   {file:"upload.html",     o:"app",    title:"File upload",       desc:"Native file input → OS dialog. Upload <code>report.txt</code> and assert the echoed name; cancelling the dialog must not burn heal budget.", params:[]},
-  {file:"api.html",        o:"noheal", title:"API console",       desc:"Fetches <code>api/todo.json</code> live and echoes status + body. A status or JSON mismatch is a real failure — never healed.", params:[]}
+  {file:"api.html",        o:"noheal", title:"API console",       desc:"Fetches <code>api/todo.json</code> live and echoes status + body. A status or JSON mismatch is a real failure — never healed.", params:[]},
+  {file:"tabs.html",       o:"mixed",  title:"Multi-tab",         desc:"Five ways a tab gets opened — anchor, script, identical twin, framed, and one that opens nothing. A handoff inbox makes “switch back to tab 1” assert a live fact. The break slips a Notifications tab in front, so the invoice lands on index 2.", params:["?v=2","?gone=1"]},
+  {file:"windows.html",    o:"mixed",  title:"Multi-window",      desc:"SecurePay opens as a real <code>window.open</code> popup: one route stays open, one auto-closes on confirmation, one opens a grandchild window, one redirects itself. The break forces auto-close everywhere.", params:["?v=2","?gone=1"]},
+  {file:"smart-tab.html",  o:"mixed",  title:"Smart Tab Handling",desc:"18 launchers that each move one tab property — path, query, fragment, title, open order, tracking params — plus a live score oracle running the spec's arithmetic. The break inverts the open order so index 1 is the wrong page.", params:["?v=2","?gone=1"]},
+  {file:"console.html",    o:"noheal", title:"Custom JS console", desc:"Values only a Custom-JS step can reach: canvas text, <code>::before</code> content, shadow DOM, storage, async and throwing hooks. The break relocates every hook — and a Custom-JS step is never self-healed.", params:["?v=2","?gone=1","?ctx=B"]}
 ];
 
 var CASES = [
@@ -511,7 +515,21 @@ var CASES = [
   ["S33","mixed","email.html",                                   "?v=2 drifts the verify link/OTP (heals); assert wrong OTP (no heal). Real OTP: temp-mail.org"],
   ["S34","heals","checkout.html",                                "Cloud build: fragile test → 'healing in progress' banner, rerun with healed version, build duration"],
   ["S35","app",  "modal.html",                                   "Random promo popup mid-flow → close it and continue (warn-but-continue); a click behind it logs '⚠ blocked'. ?popup=1 forces, ?popup=0 suppresses"],
-  ["S36","app",  "config.html",                                  "Set headers/cookies/storage/basic-auth + IP geolocation in run config → the page echoes each (injected headers tagged, egress IP + country shown)"]
+  ["S36","app",  "config.html",                                  "Set headers/cookies/storage/basic-auth + IP geolocation in run config → the page echoes each (injected headers tagged, egress IP + country shown)"],
+  ["S37","app",  "tabs.html",                                   "Anchor / scripted / twin / framed openers → one SwitchTab each, index-based, selectors non-empty"],
+  ["S38","app",  "tabs.html",                                   "Approve in the child tab, switch back, assert the handoff inbox — proves the return switch really landed"],
+  ["S39","noheal","tabs.html",                                  "'Open statement' opens nothing → a run must not invent a SwitchTab (changeWitnessGate on pre-existing text)"],
+  ["S40","mixed","tabs.html?v=2",                               "Notifications tab opens first → the invoice moves to index 2. Index-based replay breaks; Smart Tab should survive"],
+  ["S41","app",  "tabs.html",                                   "Close the active tab with no explicit switch → the run must fall back to a live handle, not NoSuchWindow"],
+  ["S42","app",  "windows.html",                                "window.open popup (480×680) → switch, confirm, switch back; merchant window shows SP-77214"],
+  ["S43","mixed","windows.html?v=2",                            "Popup auto-closes on confirmation → the handle vanishes mid-test; later steps must fail cleanly or re-target"],
+  ["S44","app",  "windows.html",                                "Grandchild window: pay.html opens otp.html → depth-2 handle, OTP 902137, then unwind both"],
+  ["S45","app",  "smart-tab.html",                              "Tracking params (utm/gclid/fbclid) added on replay only → must score identically to the clean URL"],
+  ["S46","app",  "smart-tab.html",                              "Path scoring on the deployed URL: /cart/checkout (32) vs /store/cart/checkout (20) vs /account/checkout (17.5)"],
+  ["S47","app",  "smart-tab.html",                              "Identical twins tie on score → fall back to the recorded tab index, then the previously active tab"],
+  ["S48","app",  "smart-tab.html",                              "Title mutates 2.5 s after load → properties captured too late stop matching. Watch the oracle drop"],
+  ["S49","noheal","console.html",                               "Custom JS × 3 types: action on a readonly field, validation on the ledger, create-variable from a JS-only global"],
+  ["S50","noheal","console.html?v=2",                           "Hooks relocate to window.lca.v2 → the recorded snippet throws and is NOT self-healed (outside the 7 healable types)"]
 ];
 
 var ST  = {heals:"healthy", noheal:"gone", mixed:"drift", app:"config"};
@@ -572,7 +590,7 @@ function overrideQuery(){
 (function(){
   var body = document.getElementById("caseBody");
   // \b (not ^): every occurrence in a multi-target cell gets linked, not just the first
-  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|modal|config|data|email|cookie|download|upload|api)\.html(\?[^\s)]*)?|api\/todo\.json/g;
+  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|modal|config|data|email|cookie|download|upload|api|tabs|windows|smart-tab|console)\.html(\?[^\s)]*)?|api\/todo\.json/g;
   function linkify(txt){ return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; }); }
   var rows = CASES.map(function(c){
     return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'
@@ -601,7 +619,8 @@ function overrideQuery(){
       if(vis) shown++;
     });
     document.getElementById("noRow").style.display = shown ? "none" : "";
-    document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S36" : shown+" of "+CASES.length;
+    /* derived, not hardcoded — the label went stale last time cases were added */
+    document.getElementById("caseCount").textContent = shown===CASES.length ? "S1 – S"+CASES.length : shown+" of "+CASES.length;
   }
   chips.forEach(function(ch){
     ch.addEventListener("click", function(){

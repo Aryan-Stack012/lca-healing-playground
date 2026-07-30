@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-window · LCA Playground</title>
+<meta name="description" content="A PayPal-shaped payment popup: real window.open handles, one that stays open, one that auto-closes on confirmation, a grandchild window, and one that redirects itself.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="windows.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Multi-window mechanics</span>
+      <h1>Northwind checkout</h1>
+      <p class="page__note">SecurePay opens as a real browser <strong>window</strong> — <code>window.open</code> with size features, not a tab. One route leaves it open, one closes it the moment the payment confirms, and one lets it open a window of its own. The merchant window below updates live from whichever one you used.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Order summary</h2><span class="badge" id="payBadge">unpaid</span></div>
+      <div class="surface__body">
+        <div class="items">
+          <div class="item"><span class="thumb">EN</span><span><span class="item__name">Enterprise licence · 12 months</span><span class="item__meta">renews 2027-04-01</span></span><span class="item__price">$129.00</span></div>
+          <div class="item"><span class="thumb">SU</span><span><span class="item__name">Priority support</span><span class="item__meta">24×5</span></span><span class="item__price">$20.00</span></div>
+        </div>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Order reference</span><span class="row__v" id="orderRef">INV-4417</span></div>
+          <div class="row row--total"><span class="row__k">Total</span><span class="row__v" id="orderTotal">$149.00</span></div>
+        </div>
+      </div>
+      <div class="surface__foot">
+        <p id="payState" class="mono" role="status" aria-live="polite">Payment: awaiting authorisation.</p>
+        <p id="payDetail" class="meta" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Pay</h2><span class="surface__meta">4 window routes</span></div>
+      <div class="surface__body stack">
+        <div class="grid2">
+          <div class="stack">
+            <button id="payWindow" class="btn-primary">Pay with SecurePay</button>
+            <span class="meta">Popup <code>480×680</code> that <strong>stays open</strong> after confirming — switch back to this window yourself.</span>
+          </div>
+          <div class="stack">
+            <button id="payAutoClose">Pay with SecurePay (auto-close)</button>
+            <span class="meta">Confirms, then <strong>closes itself</strong> after a 3 s countdown. The handle disappears mid-test.</span>
+          </div>
+          <div class="stack">
+            <button id="payTwo">Pay and verify (two windows)</button>
+            <span class="meta">Opens the payment window <em>and</em> an OTP window, so two popups are live at once.</span>
+          </div>
+          <div class="stack">
+            <button id="payRedirect">Pay with SecurePay (redirects)</button>
+            <span class="meta">Opens on <code>?step=authorise</code>, then navigates itself to <code>?step=review</code> after 1.5 s.</span>
+          </div>
+        </div>
+        <p id="openState" class="mono" role="status" aria-live="polite">No window opened yet.</p>
+        <span class="meta">Inside the payment window, <em>Verify with OTP</em> opens a grandchild window — a popup opened by a popup.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Windows this page opened</h2><span class="surface__meta">open order · live status</span></div>
+      <div class="surface__body"><div id="registry"></div></div>
+      <div class="surface__foot"><p class="meta" id="flagNote">Reading the shared break flag…</p></div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Targets: <code>windows/pay.html</code> · <code>windows/otp.html</code>. Fixed refs: <code>SP-77214</code>, OTP <code>902137</code>.</p>
+      <a href="index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/tabkit.js"></script>
+  <script>
+  (function(){
+    var FEATURES = 'width=480,height=680,left=220,top=120';
+    var openState = document.getElementById('openState');
+    LCA.registry(document.getElementById('registry'));
+
+    function say(msg, bad){
+      openState.textContent = msg;
+      openState.className = 'mono ' + (bad ? 'is-bad' : 'is-ok');
+    }
+
+    /* ---------------- merchant-side readout ---------------- */
+    LCA.on(function(msg){
+      if(msg.type === 'payment'){
+        var s = document.getElementById('payState');
+        var ok = msg.outcome === 'approved';
+        s.textContent = 'Payment: ' + (ok ? 'Approved' : 'Declined') + ' · ' + msg.ref + ' · ' + msg.order;
+        s.className = 'mono ' + (ok ? 'is-ok' : 'is-bad');
+        var b = document.getElementById('payBadge');
+        b.textContent = ok ? 'paid' : 'declined';
+        b.className = 'badge ' + (ok ? 'badge--ok' : 'badge--err');
+      }
+      if(msg.type === 'otp'){
+        var d = document.getElementById('payDetail');
+        d.textContent = 'OTP ' + (msg.accepted ? 'accepted' : 'rejected') + ' · ' + msg.code;
+        d.className = 'meta ' + (msg.accepted ? 'is-ok' : 'is-bad');
+      }
+    });
+
+    /* ---------------- the break ----------------
+       healthy : the popup stays open after confirming
+       drift   : every route auto-closes on confirmation, so a later step
+                 aimed at that window finds the handle gone
+       gone    : SecurePay never opens at all */
+    lcaResolve().then(function(r){
+      var note = document.getElementById('flagNote');
+      var copy = {
+        healthy: 'Flag healthy — SecurePay opens and stays open until you close it.',
+        drift:   'Flag drifted — every SecurePay route auto-closes on confirmation. Steps aimed at that window afterwards lose their handle.',
+        gone:    'Flag gone — SecurePay does not open. Every pay button reports the window as unavailable.'
+      };
+      note.textContent = copy[r.state] + ' (source: ' + r.source + ')';
+      note.className = 'meta ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad');
+
+      var forceClose = r.state === 'drift';
+      var blocked    = r.state === 'gone';
+
+      function pay(extra, label){
+        if(blocked){
+          say('SecurePay unavailable — no window opened.', true);
+          return null;
+        }
+        var q = 'order=INV-4417&amount=149.00' + (forceClose ? '&autoclose=1' : '') + (extra || '');
+        var rec = LCA.open('windows/pay.html?' + q, 'securepay', FEATURES);
+        say(rec.blocked
+          ? 'window.open returned null — the popup was blocked by the browser.'
+          : label, rec.blocked);
+        return rec;
+      }
+
+      document.getElementById('payWindow').addEventListener('click', function(){
+        pay('', forceClose
+          ? 'SecurePay opened — but the flag is drifted, so it will close itself on confirmation.'
+          : 'SecurePay opened and will stay open after confirming.');
+      });
+
+      document.getElementById('payAutoClose').addEventListener('click', function(){
+        pay('&autoclose=1', 'SecurePay opened — it closes itself 3 s after the payment confirms.');
+      });
+
+      document.getElementById('payRedirect').addEventListener('click', function(){
+        pay('&redirect=1500', 'SecurePay opened on the authorise step — it redirects to review in 1.5 s.');
+      });
+
+      /* Both opens stay in this one handler: a deferred window.open would
+         lose the user gesture and get blocked. */
+      document.getElementById('payTwo').addEventListener('click', function(){
+        if(blocked){ say('SecurePay unavailable — no window opened.', true); return; }
+        var a = LCA.open('windows/pay.html?order=INV-4417&amount=149.00' + (forceClose ? '&autoclose=1' : ''), 'securepay', FEATURES);
+        var b = LCA.open('windows/otp.html?order=INV-4417', 'securepay-otp', 'width=420,height=460,left=740,top=120');
+        say((a.blocked || b.blocked)
+          ? 'One of the two windows was blocked by the browser.'
+          : 'Two windows are live: SecurePay and OTP.', a.blocked || b.blocked);
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-tab · LCA Playground</title>
+<meta name="description" content="Every way a new tab gets opened — anchor, script, twin, framed, blocked — with a live handoff inbox so switching back to the first tab asserts something real.">
+<meta name="theme-color" content="#060912">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+</head>
+<body data-sub="tabs.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Multi-tab mechanics</span>
+      <h1>Licence console</h1>
+      <p class="page__note">Each opener below produces a new tab a different way — a real anchor, a scripted open, an identical twin, a framed target, and one that opens nothing at all. Approving anything in a child tab posts a code back to the <strong>handoff inbox</strong> here, so “switch back to the first tab and validate” asserts a live fact instead of re-reading static copy.</p>
+    </header>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Open a tab</h2><span class="surface__meta">5 routes, 5 outcomes</span></div>
+      <div class="surface__body stack">
+        <div class="grid2">
+          <div class="stack">
+            <a id="openInvoice" class="dl-btn" href="tabs/target.html?tab=B" target="_blank">Open invoice in a new tab</a>
+            <span class="meta">Real <code>target="_blank"</code> anchor → tab <strong>B</strong>. Cannot be closed by script.</span>
+          </div>
+          <div class="stack">
+            <button id="openScript" class="btn-primary">Open invoice (scripted)</button>
+            <span class="meta"><code>window.open</code> → tab <strong>C</strong>. Script-opened, so <em>Close this tab</em> works there.</span>
+          </div>
+          <div class="stack">
+            <button id="openTwin">Open a second copy of tab B</button>
+            <span class="meta">Byte-identical URL <em>and</em> title. Only the index tells them apart.</span>
+          </div>
+          <div class="stack">
+            <button id="openFramed">Open the framed approval</button>
+            <span class="meta">Tab <strong>F</strong> — its control is inside an iframe. Tab switch, then frame switch.</span>
+          </div>
+          <div class="stack">
+            <button id="openSelfClosing">Open a tab that closes itself</button>
+            <span class="meta">Tab <strong>D</strong> closes after 6 s, shifting every later index down.</span>
+          </div>
+          <div class="stack">
+            <button id="openBlocked" class="decoy">Open statement in a new tab</button>
+            <span class="meta">Labelled like an opener, opens nothing. The honest negative case.</span>
+          </div>
+        </div>
+        <p id="openState" class="mono" role="status" aria-live="polite">No opener used yet.</p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Handoff inbox</h2><span class="live" data-state="healthy"><i></i>live</span></div>
+      <div class="surface__body stack">
+        <p id="handoff" class="mono" role="status" aria-live="polite">No handoff received yet.</p>
+        <div class="rows" id="handoffLog"></div>
+        <span class="meta">Written by whichever child tab you approved. This is the readout to assert after switching back.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Work that stays on this tab</h2><span class="surface__meta">no switch required</span></div>
+      <div class="surface__body stack">
+        <div class="rows">
+          <div class="row"><span class="row__k">Licence seats</span><span class="row__v" id="seats">1</span></div>
+          <div class="row"><span class="row__k">Plan</span><span class="row__v">Enterprise · annual</span></div>
+        </div>
+        <div class="inline">
+          <button id="addSeat">Add licence seat</button>
+          <button id="showDetails" class="decoy">Show licence details</button>
+        </div>
+        <p id="seatState" class="mono" role="status" aria-live="polite">Seats unchanged.</p>
+        <div id="details" hidden>
+          <hr class="divider">
+          <p class="mono" id="detailsText">Licence details expanded · contract LC-88231 · renews 2027-04-01</p>
+        </div>
+        <span class="meta"><em>Show licence details</em> reveals content in <strong>this</strong> tab. Nothing opens — use it to prove a run does not invent a tab switch.</span>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface__head"><h2 class="surface__title">Tabs this page opened</h2><span class="surface__meta">open order · live status</span></div>
+      <div class="surface__body"><div id="registry"></div></div>
+      <div class="surface__foot">
+        <p class="meta" id="flagNote">Reading the shared break flag…</p>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>Targets: <code>tabs/target.html</code> · <code>tabs/framed.html</code>. Scoring scenarios live on <a href="smart-tab.html">smart-tab.html</a>.</p>
+      <a href="index.html">← Playground hub</a>
+    </footer>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/tabkit.js"></script>
+  <script>
+  (function(){
+    var openState = document.getElementById('openState');
+    function say(msg, bad){
+      openState.textContent = msg;
+      openState.className = 'mono ' + (bad ? 'is-bad' : 'is-ok');
+    }
+
+    LCA.registry(document.getElementById('registry'));
+
+    /* ---------------- handoff inbox ---------------- */
+    var log = [];
+    LCA.on(function(msg){
+      if(msg.type !== 'handoff') return;
+      log.push(msg);
+      var h = document.getElementById('handoff');
+      h.textContent = 'Handoff received from tab ' + msg.label + ' · ' + msg.code +
+                      (msg.note ? ' · note "' + msg.note + '"' : '');
+      h.className = 'mono is-ok';
+      document.getElementById('handoffLog').innerHTML = log.map(function(m, i){
+        return '<div class="row"><span class="row__k">#' + (i+1) + ' tab ' + LCA.esc(m.label) +
+               '</span><span class="row__v">' + LCA.esc(m.code) + '</span></div>';
+      }).join('');
+    });
+
+    /* ---------------- openers ---------------- */
+    document.getElementById('openInvoice').addEventListener('click', function(){
+      say('Anchor opener used — tab B should now be open.');
+    });
+
+    document.getElementById('openTwin').addEventListener('click', function(){
+      LCA.open('tabs/target.html?tab=B', '_blank');
+      say('Twin of tab B opened. Two tabs now share a URL and a title.');
+    });
+
+    document.getElementById('openFramed').addEventListener('click', function(){
+      LCA.open('tabs/framed.html?tab=F', '_blank');
+      say('Framed approval opened as tab F.');
+    });
+
+    document.getElementById('openSelfClosing').addEventListener('click', function(){
+      LCA.open('tabs/target.html?tab=D&autoclose=6000', '_blank');
+      say('Tab D opened and will close itself in 6 s.');
+    });
+
+    document.getElementById('openBlocked').addEventListener('click', function(){
+      say('Blocked by site policy — no tab was opened.', true);
+    });
+
+    /* ---------------- work that stays here ---------------- */
+    var seats = 1;
+    document.getElementById('addSeat').addEventListener('click', function(){
+      seats++;
+      document.getElementById('seats').textContent = String(seats);
+      var s = document.getElementById('seatState');
+      s.textContent = 'Seats updated on this tab · now ' + seats;
+      s.className = 'mono is-ok';
+    });
+
+    document.getElementById('showDetails').addEventListener('click', function(){
+      document.getElementById('details').hidden = false;
+      say('Licence details expanded on this tab. No tab was opened.');
+    });
+
+    /* ---------------- the break: an index-shifting decoy ----------------
+       healthy : the scripted opener yields exactly one tab (invoice = index 1)
+       drift   : a Notifications tab opens FIRST, so the invoice lands on index 2
+       gone    : only Notifications opens — the invoice tab never appears
+       Same URL, same button, same click. Only the index moves. */
+    lcaResolve().then(function(r){
+      var note = document.getElementById('flagNote');
+      var copy = {
+        healthy: 'Flag healthy — “Open invoice (scripted)” opens one tab: the invoice, at index 1.',
+        drift:   'Flag drifted — “Open invoice (scripted)” opens a Notifications tab first, pushing the invoice to index 2.',
+        gone:    'Flag gone — “Open invoice (scripted)” opens Notifications only. The invoice tab never appears.'
+      };
+      note.textContent = copy[r.state] + ' (source: ' + r.source + ')';
+      note.className = 'meta ' + (r.state === 'healthy' ? 'is-ok' : 'is-bad');
+
+      document.getElementById('openScript').addEventListener('click', function(){
+        if(r.state === 'healthy'){
+          LCA.open('tabs/target.html?tab=C', '_blank');
+          say('Invoice opened as the only new tab (index 1).');
+          return;
+        }
+        /* Both opens stay inside this one click handler — a deferred
+           window.open loses the user gesture and gets popup-blocked. */
+        LCA.open('tabs/target.html?tab=N&title=Notifications%20%C2%B7%20LCA%20Playground', '_blank');
+        if(r.state === 'gone'){
+          say('Notifications opened. The invoice tab did not open at all.', true);
+        }else{
+          LCA.open('tabs/target.html?tab=C', '_blank');
+          say('Notifications opened first — the invoice is now index 2, not index 1.', true);
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
