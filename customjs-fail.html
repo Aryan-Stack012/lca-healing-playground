@@ -48,6 +48,27 @@
 
     <div id="cases"></div>
 
+    <!-- ============ F · breaks only on replay ============ -->
+    <section class="surface" id="replaySection">
+      <div class="surface__head">
+        <h2 class="surface__title">F · Breaks only on replay</h2>
+        <span class="badge" id="replayBadge">reading flag…</span>
+      </div>
+      <div class="surface__body stack">
+        <p class="meta" style="margin:0">Everything above is a snippet that fails <em>now</em> — which an agentic recorder cannot author, because its objective is a test that replays green. Ask it to add a failing step and it will rewrite the snippet into a passing validation, skip the step, or run the snippet as a probe and never record it. The run comes back green either way.</p>
+        <p class="meta" style="margin:0">These four hooks solve that. While the flag is <strong>healthy</strong> each returns a clean value, so the agent records an honest <em>passing</em> step. Flip the shared flag and the same saved snippet fails on replay — a genuine Custom-JS step failure reached through the normal record-then-replay lifecycle, with no agent asked to author a failure.</p>
+        <div id="replayRows"></div>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Order total (live)</span><span class="row__v" id="liveTotal">$149.00</span></div>
+        </div>
+        <p id="replayNote" class="meta" role="status" aria-live="polite"></p>
+      </div>
+      <div class="surface__foot">
+        <p class="meta">Record against <strong>healthy</strong>, save, then <code>./toggle.sh on</code> (drift) or <code>gone</code> and re-run the <em>same</em> saved test. Same URL throughout — the recording is never invalidated.</p>
+      </div>
+    </section>
+
     <!-- fixtures the cards operate on -->
     <section class="surface">
       <div class="surface__head"><h2 class="surface__title">Fixtures</h2><span class="surface__meta">what the snippets reach for</span></div>
@@ -356,6 +377,156 @@
                         tally.depends + ' decided by the executor, not the browser' +
                         (tally.pass ? ' · ' + tally.pass + ' PASS UNEXPECTEDLY (card is broken)' : '');
         s.className = 'mono ' + (tally.pass ? 'is-bad' : 'is-ok');
+      });
+    });
+
+    /* ---------------- F · breaks only on replay ----------------
+       The one agentic-compatible route to a real Custom-JS step failure:
+       the agent records a PASSING step against a healthy hook, then the
+       shared flag changes the environment and the saved step fails on
+       replay. Each hook fails a different way, so one recorded suite
+       covers throw / timeout / contract / silently-wrong in one flip. */
+    var REPLAY = [
+      {fn:'lcaQuote',      type:'variable',   snippet:'return window.lcaQuote();',
+       healthy:'resolves to "Q-5591" after 200 ms',
+       drift:'never settles — the step must time out at replay, not hang the session',
+       gone:'hook deleted — TypeError: window.lcaQuote is not a function'},
+
+      {fn:'lcaCheckStock', type:'validation', snippet:'return window.lcaCheckStock();',
+       healthy:'returns true (boolean)',
+       drift:'returns the STRING "false" — truthy, so a truthiness-testing executor keeps passing a now-failing check',
+       gone:'throws Error: stock service unavailable'},
+
+      {fn:'lcaOrderId',    type:'variable',   snippet:'return window.lcaOrderId();',
+       healthy:'returns "ORD-88231"',
+       drift:'returns null — must fail, never persist an empty variable',
+       gone:'returns undefined'},
+
+      {fn:'lcaTotal',      type:'variable',   snippet:'return window.lcaTotal();', vsLive:true,
+       healthy:'reads the live total from the DOM → "$149.00"',
+       drift:'the page total changes to $199.00 but the hook still returns the stale "$149.00" — no error, and a recorded assertion on $149.00 keeps passing while the app disagrees',
+       gone:'returns an empty string'}
+    ];
+
+    function installReplayHooks(state){
+      var liveTotal = document.getElementById('liveTotal');
+      if(state === 'healthy'){
+        liveTotal.textContent = '$149.00';
+        window.lcaQuote      = function(){ return new Promise(function(r){ setTimeout(function(){ r('Q-5591'); }, 200); }); };
+        window.lcaCheckStock = function(){ return true; };
+        window.lcaOrderId    = function(){ return 'ORD-88231'; };
+        window.lcaTotal      = function(){ return document.getElementById('liveTotal').textContent; };
+      }else if(state === 'drift'){
+        liveTotal.textContent = '$199.00';          // the app moved on…
+        window.lcaQuote      = function(){ return new Promise(function(){ /* never settles */ }); };
+        window.lcaCheckStock = function(){ return 'false'; };
+        window.lcaOrderId    = function(){ return null; };
+        window.lcaTotal      = function(){ return '$149.00'; };   // …the hook did not
+      }else{
+        liveTotal.textContent = '$199.00';
+        try { delete window.lcaQuote; } catch(e){ window.lcaQuote = undefined; }
+        window.lcaCheckStock = function(){ throw new Error('stock service unavailable'); };
+        window.lcaOrderId    = function(){ return undefined; };
+        window.lcaTotal      = function(){ return ''; };
+      }
+    }
+
+    function gradeReplay(type, value){
+      if(type === 'validation'){
+        if(value === true) return {ok:true, note:'returned true'};
+        return {ok:false, note:'returned ' + fmt(value) + ' — typeof ' + (typeof value) + ' · not === true'};
+      }
+      if(typeof value === 'string' && value !== '') return {ok:true, note:'returned ' + fmt(value)};
+      return {ok:false, note:'returned ' + fmt(value) + ' — typeof ' + (typeof value) + ' · not a non-empty string'};
+    }
+
+    function runReplay(i){
+      var r = REPLAY[i], el = document.getElementById('rout-' + i), value;
+      try {
+        value = (new Function(r.snippet))();
+      } catch(e){
+        el.textContent = 'FAILS · threw · ' + describeThrown(e);
+        el.className = 'fcard__out mono is-ok';
+        return;
+      }
+      if(value && typeof value.then === 'function'){
+        var settled = false;
+        el.textContent = 'awaiting…'; el.className = 'fcard__out mono';
+        Promise.race([
+          value.then(function(v){ settled = true; return {k:'resolved', v:v}; },
+                     function(e){ settled = true; return {k:'rejected', e:e}; }),
+          new Promise(function(res){ setTimeout(function(){ if(!settled) res({k:'pending'}); }, SETTLE_MS); })
+        ]).then(function(o){
+          if(o.k === 'pending'){
+            el.textContent = 'FAILS · still pending after ' + SETTLE_MS + ' ms · a saved step must time out here';
+            el.className = 'fcard__out mono is-ok';
+          }else if(o.k === 'rejected'){
+            el.textContent = 'FAILS · rejected · ' + describeThrown(o.e);
+            el.className = 'fcard__out mono is-ok';
+          }else{
+            finishReplay(el, r, gradeReplay(r.type, o.v), 'resolved · ');
+          }
+        });
+        return;
+      }
+      finishReplay(el, r, gradeReplay(r.type, value), '');
+    }
+
+    /* A hook can return a perfectly valid string and still be wrong. For the
+       stale-read hook, cross-check the returned value against the live DOM:
+       a pass that disagrees with the page is the silently-wrong case, which
+       is the whole reason that hook exists. */
+    function finishReplay(el, r, g, prefix){
+      if(g.ok && r.vsLive){
+        var live = document.getElementById('liveTotal').textContent;
+        if(g.note.indexOf(live) < 0){
+          el.textContent = 'PASSES — wrongly · ' + prefix + g.note +
+                           ' · but the page shows ' + live + ' · no error, wrong value recorded';
+          el.className = 'fcard__out mono is-bad';
+          return;
+        }
+      }
+      el.textContent = (g.ok ? 'PASSES · ' : 'FAILS · ') + prefix + g.note;
+      el.className = 'fcard__out mono ' + (g.ok ? '' : 'is-ok');
+    }
+
+    lcaResolve().then(function(res){
+      installReplayHooks(res.state);
+
+      var WORD = {healthy:'healthy · record now', drift:'drifted · replay fails', gone:'gone · replay fails'};
+      var badge = document.getElementById('replayBadge');
+      badge.textContent = WORD[res.state] || res.state;
+      badge.className = 'badge ' + (res.state === 'healthy' ? 'badge--ok' : 'badge--err');
+
+      var TYPE = {validation:'Custom validation', variable:'Create variable'};
+      document.getElementById('replayRows').innerHTML = REPLAY.map(function(r, i){
+        return '<div class="fcard" data-verdict="' + (res.state === 'healthy' ? '' : 'fail') + '">' +
+          '<div class="fcard__head">' +
+            '<span class="fcard__t mono">window.' + LCA_esc(r.fn) + '()</span>' +
+            '<span class="badge badge--info">' + LCA_esc(TYPE[r.type]) + '</span>' +
+          '</div>' +
+          '<div class="snip"><div class="snip__head">' +
+            '<span class="label">' + LCA_esc(TYPE[r.type]) + '</span>' +
+            '<span class="meta">record this while healthy</span></div>' +
+            '<pre class="snip__code">' + LCA_esc(r.snippet) + '</pre></div>' +
+          '<div class="rows" style="margin-top:var(--s3)">' +
+            '<div class="row"><span class="row__k">healthy</span><span class="row__v">' + LCA_esc(r.healthy) + '</span></div>' +
+            '<div class="row"><span class="row__k">drift</span><span class="row__v">' + LCA_esc(r.drift) + '</span></div>' +
+            '<div class="row"><span class="row__k">gone</span><span class="row__v">' + LCA_esc(r.gone) + '</span></div>' +
+          '</div>' +
+          '<div class="inline" style="margin-top:var(--s3)"><button data-replay="' + i + '">Run it here</button>' +
+            '<span class="fcard__out mono" id="rout-' + i + '" role="status" aria-live="polite">Not run.</span></div>' +
+          '</div>';
+      }).join('');
+
+      document.getElementById('replayNote').textContent = res.state === 'healthy'
+        ? 'All four return clean values right now — record them as passing steps, save, then flip the flag.'
+        : 'The flag is ' + res.state + '. A test recorded while healthy now fails on these four steps, each a different way.';
+      document.getElementById('replayNote').className = 'meta ' + (res.state === 'healthy' ? 'is-ok' : 'is-bad');
+
+      document.getElementById('replayRows').addEventListener('click', function(ev){
+        var b = ev.target.closest('button[data-replay]');
+        if(b) runReplay(parseInt(b.dataset.replay, 10));
       });
     });
 

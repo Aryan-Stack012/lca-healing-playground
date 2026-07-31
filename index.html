@@ -7,7 +7,7 @@
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
 <meta property="og:title" content="LCA Self-Healing Playground">
-<meta property="og:description" content="Break a locator on demand and watch the heal fire — 55 cases, 19 target pages, one shared flag, same URL throughout.">
+<meta property="og:description" content="Break a locator on demand and watch the heal fire — 56 cases, 19 target pages, one shared flag, same URL throughout.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
@@ -419,7 +419,7 @@ tbody tr:hover{background:var(--ink-2)}
   <section class="section reveal" aria-labelledby="caseH">
     <div class="section__head">
       <h2 id="caseH">Case matrix</h2>
-      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S55</span>
+      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S56</span>
     </div>
     <div class="filters" role="group" aria-label="Filter cases by behavior">
       <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases" aria-controls="caseBody">
@@ -432,7 +432,7 @@ tbody tr:hover{background:var(--ink-2)}
     <div class="tablewrap">
       <div class="tablescroll">
         <table>
-          <caption class="sr-only">55 self-healing test cases by target page and expected behavior</caption>
+          <caption class="sr-only">56 self-healing test cases by target page and expected behavior</caption>
           <thead><tr><th style="width:84px">Case</th><th style="width:30%">Target</th><th>How to exercise it</th></tr></thead>
           <tbody id="caseBody"></tbody>
         </table>
@@ -477,7 +477,7 @@ var SCENARIOS = [
   {file:"windows.html",    o:"mixed",  title:"Multi-window",      desc:"SecurePay opens as a real <code>window.open</code> popup: one route stays open, one auto-closes on confirmation, one opens a grandchild window, one redirects itself. The break forces auto-close everywhere.", params:["?v=2","?gone=1"]},
   {file:"smart-tab.html",  o:"mixed",  title:"Smart Tab Handling",desc:"19 launchers that each move one tab property — path, query, fragment, title, open order, tracking params, a devtools-substring URL — plus a live score oracle running the spec's arithmetic. The break inverts the open order so index 1 is the wrong page.", params:["?v=2","?gone=1"]},
   {file:"console.html",    o:"noheal", title:"Custom JS console", desc:"Values only a Custom-JS step can reach: canvas text, <code>::before</code> content, shadow DOM, storage, async and throwing hooks. The break relocates every hook — and a Custom-JS step is never self-healed.", params:["?v=2","?gone=1","?ctx=B"]},
-  {file:"customjs-fail.html", o:"noheal", title:"Custom JS failures", desc:"18 snippets that must fail a Custom-JS step — compile errors, throws, wrong return contracts, async, timeouts. Each runs in-page and grades itself, so the page is the oracle. Three deliberately <b>pass while being wrong</b>.", params:["run all","per-case run"]}
+  {file:"customjs-fail.html", o:"noheal", title:"Custom JS failures", desc:"18 snippets that must fail a Custom-JS step — compile errors, throws, wrong return contracts, async, timeouts — each graded in-page, so the page is its own oracle. Plus section F: four hooks that record green and fail only on <em>replay</em>, the one route an agent can author.", params:["?v=2","?gone=1","run all"]}
 ];
 
 var CASES = [
@@ -535,7 +535,8 @@ var CASES = [
   ["S52","noheal","customjs-fail.html",                         "Return contract: a validation returning the STRING \"false\" is truthy — if it passes, every string-returning validation on the platform is unsound"],
   ["S53","noheal","customjs-fail.html",                         "Missing return / null / object returns → must fail, never persist an empty or [object Object] variable"],
   ["S54","noheal","customjs-fail.html",                         "Async + timeouts: pending Promise, rejected Promise, never-settles, value assigned after return, blocking sync loop → timeout not hang"],
-  ["S55","noheal","customjs-fail.html",                         "Passes wrongly (3): throw inside a callback, string \"false\", .value without dispatch — no error raised, wrong outcome recorded"]
+  ["S55","noheal","customjs-fail.html",                         "Passes wrongly (2): throw inside a setTimeout callback, .value without a dispatched event — no error raised, wrong outcome recorded"],
+  ["S56","mixed","customjs-fail.html",                          "Section F: record 4 hooks green, flip the flag, replay → timeout / truthy \"false\" / null / stale $149.00 vs page $199.00. The only agent-authorable Custom-JS failure"]
 ];
 
 var ST  = {heals:"healthy", noheal:"gone", mixed:"drift", app:"config"};
