@@ -1,2 +1,9 @@
 .DS_Store
 .playwright-mcp/
+
+# TM pusher scripts + creds — kept locally, deliberately NOT published:
+# this repo is public via GitHub Pages and the case text cites internal
+# tickets/subsystems (TC-942, abstentionPipeline, AIAutoHealer, spec detail).
+.bsauth
+.bsproj
+tm/
