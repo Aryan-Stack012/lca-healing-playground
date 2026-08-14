@@ -7,7 +7,7 @@
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
 <meta property="og:title" content="LCA Self-Healing Playground">
-<meta property="og:description" content="Break a locator on demand and watch the heal fire — 56 cases, 19 target pages, one shared flag, same URL throughout.">
+<meta property="og:description" content="Break a locator on demand and watch the heal fire — 56 cases, 20 target pages, one shared flag, same URL throughout.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
@@ -470,6 +470,7 @@ var SCENARIOS = [
   {file:"timing.html",     o:"app",    title:"Late element",       desc:"The button appears after <code>?delay=ms</code> (default 5000) — exercises intelligent wait. A huge delay is a genuine timeout, not a heal.", params:["?delay=5000"]},
   {file:"visual.html",     o:"noheal", title:"Visual diff",        desc:"Colour and number randomise on every load, so a visual baseline never matches. A real failure — never healed.", params:["random"]},
   {file:"cookie.html",     o:"app",    title:"Browser config",     desc:"Echoes the cookies and localStorage the run actually sees. Confirms a heal run still carries your configured state.", params:["demoConfig"]},
+  {file:"login.html",      o:"app",    title:"Sign in",            desc:"A gated form that accepts exactly one credential pair — held only as a salted <code>PBKDF2-SHA256</code> digest, so view-source never reveals it. Wrong pairs get one generic error; a correct one opens a session panel that survives reload until sign-out.", params:["sessionStorage"]},
   {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]},
   {file:"upload.html",     o:"app",    title:"File upload",       desc:"Native file input → OS dialog. Upload <code>report.txt</code> and assert the echoed name; cancelling the dialog must not burn heal budget.", params:[]},
   {file:"api.html",        o:"noheal", title:"API console",       desc:"Fetches <code>api/todo.json</code> live and echoes status + body. A status or JSON mismatch is a real failure — never healed.", params:[]},

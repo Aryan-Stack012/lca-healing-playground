@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · LCA Playground</title>
+<meta name="description" content="Gated sign-in surface. Exactly one credential pair is accepted; the page stores only a PBKDF2-SHA256 digest, so the secret is never present in the markup.">
+<meta name="theme-color" content="#060912">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+  .authcard{max-width:420px; margin:0 auto}
+  .authform{display:flex; flex-direction:column; gap:var(--s4)}
+  .pwwrap{display:flex; gap:var(--s2); align-items:stretch}
+  .pwwrap input{flex:1; min-width:0}
+  .pwwrap button{white-space:nowrap}
+  #login-btn{width:100%; justify-content:center}
+  #login-error:not(:empty){display:block; padding:10px 12px; border-radius:var(--r-sm);
+    background:var(--ink-2); border:1px solid var(--line-soft); color:var(--gone);
+    font-family:var(--font-mono); font-size:var(--fs-75)}
+  .authnote{font-size:var(--fs-75); color:var(--faint); margin:0}
+</style>
+</head>
+<body data-sub="login.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Authenticated area</span>
+      <h1>Sign in</h1>
+      <p class="page__note">Exactly one username/password pair is accepted — every other combination is rejected. The pair is <b>not</b> written anywhere in this page: only a salted <code>PBKDF2-HMAC-SHA256</code> digest (150 000 iterations) ships in the source, so viewing the markup does not reveal it.</p>
+    </header>
+
+    <section class="surface authcard" id="login-card">
+      <div class="surface__head">
+        <h2 class="surface__title">Account access</h2>
+        <span class="badge badge--info" id="auth-state" data-state="signed-out">Signed out</span>
+      </div>
+      <div class="surface__body">
+        <form class="authform" id="login-form" novalidate autocomplete="off">
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username"
+                   autocapitalize="off" autocorrect="off" spellcheck="false"
+                   data-testid="login-username" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="pwwrap">
+              <input id="password" name="password" type="password" autocomplete="current-password"
+                     spellcheck="false" data-testid="login-password" required>
+              <button type="button" id="toggle-password" data-testid="login-toggle-password"
+                      aria-pressed="false" aria-controls="password">Show</button>
+            </div>
+          </div>
+          <button type="submit" id="login-btn" class="btn-primary" data-testid="login-submit">Sign in</button>
+          <div id="login-error" role="alert" aria-live="assertive" data-testid="login-error" data-attempts="0"></div>
+          <p class="authnote" id="attempt-note" hidden></p>
+        </form>
+      </div>
+      <div class="surface__foot">
+        <span class="meta">Credentials are verified in the browser. No request leaves the page.</span>
+      </div>
+    </section>
+
+    <section class="surface authcard" id="dashboard" data-testid="dashboard" hidden>
+      <div class="surface__head">
+        <h2 class="surface__title">Signed in</h2>
+        <span class="badge badge--ok">Session active</span>
+      </div>
+      <div class="surface__body">
+        <p id="login-status" data-testid="login-status" class="is-ok" style="font-weight:600"></p>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Session ref</span><span class="row__v"><span id="session-ref" data-testid="session-ref"></span></span></div>
+          <div class="row"><span class="row__k">Signed in at</span><span class="row__v" style="text-transform:none"><span id="session-at" data-testid="session-at"></span></span></div>
+          <div class="row"><span class="row__k">Role</span><span class="row__v">Administrator</span></div>
+        </div>
+      </div>
+      <div class="surface__foot">
+        <button id="logout-btn" data-testid="logout" type="button">Sign out</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script>
+  (function(){
+    "use strict";
+
+    // The only credential material on this page. A digest is not a password:
+    // recovering the pair from it means brute-forcing 150k PBKDF2 rounds per guess
+    // against an 80-bit secret. Nothing else here names the username or password.
+    var SALT_HEX = "a98c51de55b38e12cc21d4aa28cf6684";
+    var ITERATIONS = 150000;
+    var DIGEST_HEX = "2aa47cb5f7b4f307f72da03b9a9ed5d84c8f5c5168900e3b57ae80ef9c650cd3";
+
+    var SESSION_KEY = "lca.login.session";
+    var MIN_LATENCY_MS = 250;
+
+    var form     = document.getElementById("login-form");
+    var userEl   = document.getElementById("username");
+    var passEl   = document.getElementById("password");
+    var btn      = document.getElementById("login-btn");
+    var toggle   = document.getElementById("toggle-password");
+    var errEl    = document.getElementById("login-error");
+    var noteEl   = document.getElementById("attempt-note");
+    var card     = document.getElementById("login-card");
+    var stateEl  = document.getElementById("auth-state");
+    var dash     = document.getElementById("dashboard");
+    var statusEl = document.getElementById("login-status");
+    var refEl    = document.getElementById("session-ref");
+    var atEl     = document.getElementById("session-at");
+    var logout   = document.getElementById("logout-btn");
+
+    var attempts = 0;
+
+    function hex(buf){
+      var out = "", v = new Uint8Array(buf);
+      for(var i = 0; i < v.length; i++) out += v[i].toString(16).padStart(2, "0");
+      return out;
+    }
+    function bytesFromHex(s){
+      var out = new Uint8Array(s.length / 2);
+      for(var i = 0; i < out.length; i++) out[i] = parseInt(s.substr(i * 2, 2), 16);
+      return out;
+    }
+    // length-independent compare — habit, not a real threat model on a static page
+    function sameDigest(a, b){
+      if(a.length !== b.length) return false;
+      var diff = 0;
+      for(var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return diff === 0;
+    }
+
+    function derive(user, pass){
+      var material = new TextEncoder().encode(user.toLowerCase() + "\u001f" + pass);
+      return crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"])
+        .then(function(key){
+          return crypto.subtle.deriveBits(
+            { name:"PBKDF2", hash:"SHA-256", salt:bytesFromHex(SALT_HEX), iterations:ITERATIONS },
+            key, 256);
+        })
+        .then(hex);
+    }
+
+    function showSignedIn(session){
+      statusEl.textContent = "Signed in as " + session.user;
+      refEl.textContent = session.ref;
+      atEl.textContent = session.at;
+      stateEl.textContent = "Signed in";
+      stateEl.className = "badge badge--ok";
+      stateEl.setAttribute("data-state", "signed-in");
+      document.body.setAttribute("data-auth", "in");
+      dash.hidden = false;
+      card.hidden = true;
+      errEl.textContent = "";
+      noteEl.hidden = true;
+    }
+
+    function showSignedOut(){
+      document.body.setAttribute("data-auth", "out");
+      dash.hidden = true;
+      card.hidden = false;
+      stateEl.textContent = "Signed out";
+      stateEl.className = "badge badge--info";
+      stateEl.setAttribute("data-state", "signed-out");
+      passEl.value = "";
+    }
+
+    function fail(message){
+      attempts++;
+      errEl.textContent = message;
+      errEl.setAttribute("data-attempts", String(attempts));
+      noteEl.textContent = attempts === 1
+        ? "1 failed attempt this session."
+        : attempts + " failed attempts this session.";
+      noteEl.hidden = false;
+      passEl.value = "";
+      passEl.focus();
+    }
+
+    function makeRef(){
+      var b = new Uint8Array(4);
+      crypto.getRandomValues(b);
+      return "SES-" + hex(b).toUpperCase();
+    }
+
+    toggle.addEventListener("click", function(){
+      var shown = passEl.type === "text";
+      passEl.type = shown ? "password" : "text";
+      toggle.textContent = shown ? "Show" : "Hide";
+      toggle.setAttribute("aria-pressed", shown ? "false" : "true");
+    });
+
+    logout.addEventListener("click", function(){
+      try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+      showSignedOut();
+      userEl.focus();
+    });
+
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(btn.disabled) return;
+
+      var user = userEl.value.trim();
+      var pass = passEl.value.trim();
+
+      errEl.textContent = "";
+      if(!user || !pass){ fail("Enter both a username and a password."); return; }
+
+      if(!(window.crypto && crypto.subtle)){
+        errEl.textContent = "Sign-in needs a secure context (https:// or localhost).";
+        return;
+      }
+
+      btn.disabled = true;
+      var label = btn.textContent;
+      btn.textContent = "Signing in…";
+      document.body.setAttribute("data-auth", "pending");
+
+      var started = Date.now();
+      derive(user, pass).then(function(digest){
+        var wait = Math.max(0, MIN_LATENCY_MS - (Date.now() - started));
+        return new Promise(function(r){ setTimeout(function(){ r(digest); }, wait); });
+      }).then(function(digest){
+        btn.disabled = false;
+        btn.textContent = label;
+        if(!sameDigest(digest, DIGEST_HEX)){
+          document.body.setAttribute("data-auth", "out");
+          fail("Invalid username or password.");
+          return;
+        }
+        var session = {
+          user: user,
+          ref: makeRef(),
+          at: new Date().toLocaleString()
+        };
+        try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); }catch(e){}
+        showSignedIn(session);
+      }).catch(function(){
+        btn.disabled = false;
+        btn.textContent = label;
+        document.body.setAttribute("data-auth", "out");
+        fail("Sign-in could not be completed. Try again.");
+      });
+    });
+
+    // restore an in-tab session so a reload keeps the signed-in state
+    var restored = null;
+    try{ restored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); }catch(e){}
+    if(restored && restored.user && restored.ref) showSignedIn(restored);
+    else showSignedOut();
+  })();
+  </script>
+</body>
+</html>
