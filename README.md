@@ -10,7 +10,45 @@ Controllable pages to test LCA agentic self-healing. **Same URL the whole time**
 Resolution order in `flag.js`: `?v=2`/`?break`/`?gone` (manual, per-tab) > `localStorage.lcaBreak=1` (same browser) > `flag.json` (shared). `?gone=0`/`?break=false` count as off.
 
 ## Pages
-checkout.html (Checkout drift + decoy; `gone` removes it), frames.html (iframe+shadow), validation.html (`#status-badge` drift; `?remove=1`/`?wrong=1`), visual.html, timing.html (`?delay`), flow.html (mid-step drift), modal.html (random promo popup interrupts mid-flow; close-and-continue, blocked clicks logged; `?popup=1` forces / `?popup=0` suppresses), data.html (`#token`; `?use=`), email.html (verify link/OTP), cookie.html, config.html (run-config inspector: injected headers, cookies, localStorage, basic-auth probe + egress IP/country for the IP-geolocation toggle), download.html (report.txt fixture in `files/`), upload.html (native OS file dialog; expects report.txt back), api.html (renders api/todo.json live + external httpbin failure legs), login.html (gated sign-in; exactly one credential pair is accepted, stored only as a salted PBKDF2-HMAC-SHA256 digest so the secret is never in the markup — every other pair gets one generic error, and a correct one opens a sessionStorage-backed session panel). index.html has the 56-case map; 404.html catches dead URLs.
+checkout.html (Checkout drift + decoy; `gone` removes it), frames.html (iframe+shadow), validation.html (`#status-badge` drift; `?remove=1`/`?wrong=1`), visual.html, timing.html (`?delay`), flow.html (mid-step drift), modal.html (random promo popup interrupts mid-flow; close-and-continue, blocked clicks logged; `?popup=1` forces / `?popup=0` suppresses), data.html (`#token`; `?use=`), email.html (verify link/OTP), cookie.html, config.html (run-config inspector: injected headers, cookies, localStorage, basic-auth probe + egress IP/country for the IP-geolocation toggle), download.html (report.txt fixture in `files/`), upload.html (native OS file dialog; expects report.txt back), api.html (renders api/todo.json live + external httpbin failure legs), login.html (gated sign-in; exactly one credential pair is accepted, stored only as a salted PBKDF2-HMAC-SHA256 digest so the secret is never in the markup — every other pair gets one generic error, and a correct one opens a sessionStorage-backed session panel). signup.html / signin-email.html / inbox.html (the credential-resolution trio — see below). index.html has the 60-case map; 404.html catches dead URLs.
+
+## Credential resolution (signup / signin-email / inbox)
+
+Three pages that make an agent's **credential-resolution** behaviour observable from the page, so a
+test never has to inspect a run log to prove it.
+
+- **signup.html** — registration whose password policy is both **stated on screen and enforced from the
+  same rule object** (10–24 chars · upper · lower · digit · one of `!@#$%^&*()-_=+.` · no spaces · no
+  angle brackets), each rule exposed as `[data-rule]` with `data-ok`. A verification code is mailed on
+  submit. Fixtures: `?strict=1` adds an **undisclosed** rule — the first compliant password is always
+  rejected once, and any password already tried this session is rejected again, so a run must produce a
+  genuinely *different* value and cannot pass by resubmitting; `?nomail=1` never delivers; `?expire=1`
+  mails a dead code; `?link=1` verifies by link instead.
+- **inbox.html** — a mailbox keyed by recipient (`?to=addr`). Opening an address nothing was sent to
+  gives an explicit **empty state**, which is how "did the run read the *permanent* or the *temporary*
+  mailbox?" becomes a page-level assertion. A blocked `localStorage` reports its own
+  `storage-unavailable` state rather than masquerading as an empty mailbox. An expired confirmation link
+  issues a fresh one instead of dead-ending. Break: `drift` moves the verify-link and code ids while
+  `aria-label="Verify"` stays put — the stable accessible name is the heal anchor, same contract as
+  email.html.
+- **signin-email.html** — the identity is an **email address**, and any well-formed address is accepted
+  with the shared password, so a run's own permanent address signs in **without this page naming it**.
+  Accounts made on signup.html are also accepted with their own password. `?otp=1` / `?link=1` add a
+  mailed challenge. Failed attempts persist in sessionStorage, so `data-attempts` survives a reload and
+  "exactly one attempt, then stop" stays provable across a navigation.
+
+**login.html is the deliberate counterpart** and is intentionally left alone: it accepts only the
+username `lca_admin`, so an email identity fails there **by construction** — that is the fixture for
+"try the stored address once and then stop", while signin-email.html is the fixture for the same rule's
+success path.
+
+**State it writes.** `lca.mailbox`, `lca.accounts` (localStorage — the mailbox must be readable from a
+second tab) and `lca.signup.pending` / `lca.signup.tried` / `lca.signin-email.pending` /
+`lca.signin-email.attempts` (sessionStorage, tab-scoped). Two consequences worth knowing: config.html
+enumerates localStorage, so these keys appear in its listing once an auth page has run in that profile;
+and parallel runs sharing an origin share one mailbox, so give each run its own recipient address —
+per-run temporary addresses do this naturally, a shared permanent address does not. Codes live 60
+minutes, long enough that ordinary agent latency never expires one by accident.
 
 ## Tabs, windows and Custom JS
 Four pages for the TC × LCNC agentic surface — multi-tab, multi-window and the Custom-JS console. Shared plumbing lives in `assets/tabkit.js` (cross-context channel with per-opener token scoping, `window.open` wrapper that auto-names every window for exact child↔row binding, live registry, Smart-Tab identity parser + score calculator) and `assets/tabtarget.js` (the self-describing identity card every opened target renders; channel ids persist in sessionStorage so self-redirecting windows stay one registry row).

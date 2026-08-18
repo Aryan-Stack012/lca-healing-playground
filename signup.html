@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account · LCA Playground</title>
+<meta name="description" content="Registration surface with a stated-and-enforced password policy and email verification. Fixtures: ?strict=1 enforces an undisclosed extra rule, ?nomail=1 never delivers, ?expire=1 delivers a dead code, ?link=1 verifies by link.">
+<meta name="theme-color" content="#060912">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+  .authcard{max-width:480px; margin:0 auto}
+  .authform{display:flex; flex-direction:column; gap:var(--s4)}
+  .pwwrap{display:flex; gap:var(--s2); align-items:stretch}
+  .pwwrap input{flex:1; min-width:0}
+  .pwwrap button{white-space:nowrap}
+  .btn-primary{width:100%; justify-content:center}
+  .formerr:not(:empty){display:block; padding:10px 12px; border-radius:var(--r-sm);
+    background:var(--ink-2); border:1px solid var(--line-soft); color:var(--gone);
+    font-family:var(--font-mono); font-size:var(--fs-75)}
+  .authnote{font-size:var(--fs-75); color:var(--faint); margin:0}
+  .policy{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px}
+  .policy li{font-family:var(--font-mono); font-size:var(--fs-75); color:var(--faint);
+    display:flex; gap:8px; align-items:baseline}
+  .policy li::before{content:"○"; color:var(--faint)}
+  .policy li[data-ok="true"]{color:var(--ok)}
+  .policy li[data-ok="true"]::before{content:"●"; color:var(--ok)}
+  .policybox{padding:12px; border:1px solid var(--line-soft); border-radius:var(--r-sm); background:var(--ink-2)}
+  .policybox h3{margin:0 0 8px; font-size:var(--fs-75); letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+</style>
+</head>
+<body data-sub="signup.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Registration</span>
+      <h1>Create account</h1>
+      <p class="page__note">Registration with a password policy that is both <b>stated on screen and enforced</b>, plus an email verification step. The verification code is random per send and is written only to <a href="inbox.html">the recipient's inbox</a> — nothing on this page names it, so a run has to read the right mailbox to finish.</p>
+    </header>
+
+    <section class="surface authcard" id="signup-card">
+      <div class="surface__head">
+        <h2 class="surface__title">New account</h2>
+        <span class="badge badge--info" id="signup-state" data-state="new">Not registered</span>
+      </div>
+      <div class="surface__body">
+        <form class="authform" id="signup-form" novalidate autocomplete="off">
+          <div class="field">
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" autocomplete="email"
+                   autocapitalize="off" autocorrect="off" spellcheck="false"
+                   data-testid="signup-email" required>
+          </div>
+
+          <div class="policybox">
+            <h3>Password requirements</h3>
+            <ul class="policy" id="policy" data-testid="signup-policy">
+              <li data-rule="length"  data-testid="policy-length"  data-ok="false">Between 10 and 24 characters</li>
+              <li data-rule="upper"   data-testid="policy-upper"   data-ok="false">At least one uppercase letter (A–Z)</li>
+              <li data-rule="lower"   data-testid="policy-lower"   data-ok="false">At least one lowercase letter (a–z)</li>
+              <li data-rule="digit"   data-testid="policy-digit"   data-ok="false">At least one number (0–9)</li>
+              <li data-rule="special" data-testid="policy-special" data-ok="false">At least one special character from ! @ # $ % ^ &amp; * ( ) - _ = + .</li>
+              <li data-rule="nospace" data-testid="policy-nospace" data-ok="false">No spaces</li>
+              <li data-rule="noangle" data-testid="policy-noangle" data-ok="false">No angle brackets (&lt; or &gt;)</li>
+            </ul>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="pwwrap">
+              <input id="password" name="password" type="password" autocomplete="new-password"
+                     spellcheck="false" data-testid="signup-password" required>
+              <button type="button" id="toggle-password" data-testid="signup-toggle-password"
+                      aria-pressed="false" aria-controls="password">Show</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="confirm-password">Confirm password</label>
+            <input id="confirm-password" name="confirm-password" type="password"
+                   autocomplete="new-password" spellcheck="false"
+                   data-testid="signup-confirm-password" required>
+          </div>
+
+          <button type="submit" id="signup-btn" class="btn-primary" data-testid="signup-submit">Create account</button>
+          <div class="formerr" id="signup-error" role="alert" aria-live="assertive"
+               data-testid="signup-error" data-attempts="0" data-reason=""></div>
+          <p class="authnote" id="signup-note" hidden></p>
+        </form>
+      </div>
+      <div class="surface__foot">
+        <span class="meta">Everything is verified in the browser. No request leaves the page.</span>
+      </div>
+    </section>
+
+    <section class="surface authcard" id="verify-card" data-testid="verify-card" hidden>
+      <div class="surface__head">
+        <h2 class="surface__title">Verify your email</h2>
+        <span class="badge badge--warn" id="verify-state" data-state="pending">Pending</span>
+      </div>
+      <div class="surface__body">
+        <p id="verify-prompt" data-testid="verify-prompt"></p>
+        <form class="authform" id="verify-form" novalidate autocomplete="off">
+          <div class="field" id="otp-field">
+            <label for="otp">Verification code</label>
+            <input id="otp" name="otp" type="text" inputmode="numeric" maxlength="6"
+                   autocomplete="one-time-code" spellcheck="false"
+                   data-testid="verify-otp">
+          </div>
+          <button type="submit" id="verify-btn" class="btn-primary" data-testid="verify-submit">Verify</button>
+          <div class="formerr" id="verify-error" role="alert" aria-live="assertive"
+               data-testid="verify-error" data-attempts="0" data-reason=""></div>
+        </form>
+      </div>
+      <div class="surface__foot">
+        <a id="inbox-link" data-testid="inbox-link" href="inbox.html">Open the inbox for this address</a>
+      </div>
+    </section>
+
+    <section class="surface authcard" id="done-card" data-testid="account-created" hidden>
+      <div class="surface__head">
+        <h2 class="surface__title">Account created</h2>
+        <span class="badge badge--ok">Verified</span>
+      </div>
+      <div class="surface__body">
+        <p id="done-status" data-testid="signup-status" class="is-ok" style="font-weight:600"></p>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Email</span><span class="row__v" style="text-transform:none"><span id="done-email" data-testid="account-email"></span></span></div>
+          <div class="row"><span class="row__k">Account ref</span><span class="row__v"><span id="done-ref" data-testid="account-ref"></span></span></div>
+          <div class="row"><span class="row__k">Password length</span><span class="row__v"><span id="done-pwlen" data-testid="account-password-length"></span></span></div>
+        </div>
+      </div>
+      <div class="surface__foot">
+        <span class="meta">This account is now accepted by <a href="signin-email.html">signin-email.html</a>.</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/mailbox.js"></script>
+  <script>
+  (function(){
+    "use strict";
+
+    var ACCOUNTS_KEY = "lca.accounts";
+    // Tab-scoped so a run can navigate to the inbox and come back without
+    // losing the half-finished registration. Without this, reading the code
+    // in this tab would throw away the very state the code completes.
+    var PENDING_KEY  = "lca.signup.pending";
+    var TRIED_KEY    = "lca.signup.tried";
+    var SPECIALS = "!@#$%^&*()-_=+.";
+
+    var params = new URLSearchParams(location.search);
+    function on(k){ var v = params.get(k); return params.has(k) && !(v === "0" || v === "false" || v === "off"); }
+
+    // Fixture switches. Each exists so a specific rule has a runnable negative
+    // path; none of them changes the happy path.
+    var STRICT  = on("strict");   // enforce an UNDISCLOSED extra rule -> forces a regenerate
+    var NOMAIL  = on("nomail");   // never deliver the verification message
+    var EXPIRE  = on("expire");   // first message arrives already dead
+    var BYLINK  = on("link");     // verify by confirmation link instead of a code
+
+    var form      = document.getElementById("signup-form");
+    var emailEl   = document.getElementById("email");
+    var passEl    = document.getElementById("password");
+    var confEl    = document.getElementById("confirm-password");
+    var toggle    = document.getElementById("toggle-password");
+    var btn       = document.getElementById("signup-btn");
+    var errEl     = document.getElementById("signup-error");
+    var noteEl    = document.getElementById("signup-note");
+    var stateEl   = document.getElementById("signup-state");
+    var policyEl  = document.getElementById("policy");
+
+    var signupCard = document.getElementById("signup-card");
+    var verifyCard = document.getElementById("verify-card");
+    var doneCard   = document.getElementById("done-card");
+
+    var verifyForm   = document.getElementById("verify-form");
+    var otpEl        = document.getElementById("otp");
+    var otpField     = document.getElementById("otp-field");
+    var verifyErr    = document.getElementById("verify-error");
+    var verifyPrompt = document.getElementById("verify-prompt");
+    var verifyState  = document.getElementById("verify-state");
+    var inboxLink    = document.getElementById("inbox-link");
+
+    var attempts = 0, verifyAttempts = 0;
+    var pending = null; // {email, password}
+
+    // Each rule is checked exactly as it is written on screen. The checklist and
+    // the gate read from this one object, so the page can never claim a rule it
+    // does not enforce.
+    var RULES = {
+      length:  function(p){ return p.length >= 10 && p.length <= 24; },
+      upper:   function(p){ return /[A-Z]/.test(p); },
+      lower:   function(p){ return /[a-z]/.test(p); },
+      digit:   function(p){ return /[0-9]/.test(p); },
+      special: function(p){ for(var i=0;i<p.length;i++){ if(SPECIALS.indexOf(p[i]) !== -1) return true; } return false; },
+      nospace: function(p){ return p.length > 0 && !/\s/.test(p); },
+      noangle: function(p){ return p.length > 0 && !/[<>]/.test(p); }
+    };
+
+    var RULE_TEXT = {
+      length:  "Password must be between 10 and 24 characters.",
+      upper:   "Password must contain at least one uppercase letter.",
+      lower:   "Password must contain at least one lowercase letter.",
+      digit:   "Password must contain at least one number.",
+      special: "Password must contain at least one special character from " + SPECIALS.split("").join(" ") + ".",
+      nospace: "Password must not contain spaces.",
+      noangle: "Password must not contain angle brackets."
+    };
+
+    function failingRules(p){
+      var out = [];
+      Object.keys(RULES).forEach(function(k){ if(!RULES[k](p)) out.push(k); });
+      return out;
+    }
+
+    function paintPolicy(){
+      var p = passEl.value;
+      Object.keys(RULES).forEach(function(k){
+        var li = policyEl.querySelector('[data-rule="' + k + '"]');
+        if(li) li.setAttribute("data-ok", p.length ? String(RULES[k](p)) : "false");
+      });
+    }
+
+    function fail(el, message, reason, counterRef){
+      counterRef.n++;
+      el.textContent = message;
+      el.setAttribute("data-attempts", String(counterRef.n));
+      el.setAttribute("data-reason", reason);
+    }
+
+    var signupCounter = { get n(){ return attempts; }, set n(v){ attempts = v; } };
+    var verifyCounter = { get n(){ return verifyAttempts; }, set n(v){ verifyAttempts = v; } };
+
+    function makeRef(){
+      var b = new Uint8Array(3);
+      crypto.getRandomValues(b);
+      var out = "";
+      for(var i=0;i<b.length;i++) out += b[i].toString(16).padStart(2,"0");
+      return "ACC-" + out.toUpperCase();
+    }
+
+    function loadTried(){
+      try{ return JSON.parse(sessionStorage.getItem(TRIED_KEY) || "[]"); }catch(e){ return []; }
+    }
+    function saveTried(a){
+      try{ sessionStorage.setItem(TRIED_KEY, JSON.stringify(a)); }catch(e){}
+    }
+
+    function savePending(){
+      try{ sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending)); }catch(e){}
+    }
+    function loadPending(){
+      try{ return JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null"); }catch(e){ return null; }
+    }
+    function clearPending(){
+      try{ sessionStorage.removeItem(PENDING_KEY); }catch(e){}
+    }
+
+    // Re-enter the verification step after a navigation. If the confirmation
+    // link was followed in another tab while we were away, finish straight off.
+    function restorePending(){
+      var p = loadPending();
+      if(!p || !p.email) return false;
+      pending = p;
+
+      var key = "lca.verified." + lcaMail.normalise(p.email);
+      var already = null;
+      try{ already = localStorage.getItem(key); }catch(e){}
+      if(already){ finish(p.email, p.password || ""); return true; }
+
+      inboxLink.setAttribute("href", "inbox.html?to=" + encodeURIComponent(p.email));
+      verifyPrompt.textContent = p.byLink
+        ? "We sent a confirmation link to " + p.email + ". Open the inbox and follow it to finish."
+        : "We sent a verification code to " + p.email + ". Enter it below to finish.";
+      otpField.hidden = !!p.byLink;
+
+      signupCard.hidden = true;
+      verifyCard.hidden = false;
+      stateEl.textContent = "Awaiting verification";
+      stateEl.setAttribute("data-state", "awaiting-verification");
+      document.body.setAttribute("data-signup", "awaiting-verification");
+      if(p.byLink) startLinkWatch(p.email); else otpEl.focus();
+      return true;
+    }
+
+    function saveAccount(email, password){
+      var all = {};
+      try{ all = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "{}"); }catch(e){}
+      all[String(email).trim().toLowerCase()] = { password: password, at: Date.now() };
+      try{ localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(all)); }catch(e){}
+    }
+
+    toggle.addEventListener("click", function(){
+      var shown = passEl.type === "text";
+      passEl.type = shown ? "password" : "text";
+      toggle.textContent = shown ? "Show" : "Hide";
+      toggle.setAttribute("aria-pressed", shown ? "false" : "true");
+    });
+
+    passEl.addEventListener("input", paintPolicy);
+
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+
+      var email = emailEl.value.trim();
+      var pass  = passEl.value;
+      var conf  = confEl.value;
+
+      errEl.textContent = "";
+      errEl.setAttribute("data-reason", "");
+      paintPolicy();
+
+      if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+        fail(errEl, "Enter a valid email address.", "email", signupCounter);
+        return;
+      }
+      if(!pass){
+        fail(errEl, "Enter a password.", "password_missing", signupCounter);
+        return;
+      }
+
+      var bad = failingRules(pass);
+      if(bad.length){
+        // Name the first violated rule explicitly -- a run is expected to read
+        // this and regenerate against it, not to retry the same value.
+        fail(errEl, RULE_TEXT[bad[0]], "policy:" + bad[0], signupCounter);
+        return;
+      }
+
+      // The undisclosed rule. Deliberately NOT in the on-screen policy and
+      // deliberately vague in the message, so clearing it requires generating a
+      // genuinely different password rather than parsing the error.
+      //
+      // Two parts, because "no character repeated three times" alone almost
+      // never fires on a normally-generated password -- the fixture would then
+      // sit there never exercising the regenerate path it exists for:
+      //   1. the FIRST policy-compliant password is always rejected once, and
+      //   2. any password already tried this session is rejected again,
+      // so resubmitting the same value cannot pass. Session-scoped, so a fresh
+      // tab starts clean.
+      if(STRICT){
+        var tried = loadTried();
+        if(tried.indexOf(pass) !== -1 || tried.length === 0){
+          if(tried.indexOf(pass) === -1) tried.push(pass);
+          saveTried(tried);
+          fail(errEl, "Password does not meet our security requirements.", "policy:undisclosed", signupCounter);
+          return;
+        }
+        tried.push(pass);
+        saveTried(tried);
+      }
+
+      if(conf !== pass){
+        fail(errEl, "Passwords do not match.", "confirm_mismatch", signupCounter);
+        return;
+      }
+
+      pending = { email: email, password: pass, byLink: !!BYLINK, noMail: !!NOMAIL };
+      savePending();
+      noteEl.hidden = true;
+
+      inboxLink.setAttribute("href", "inbox.html?to=" + encodeURIComponent(email));
+
+      if(NOMAIL){
+        verifyPrompt.textContent = "We sent a verification code to " + email + ". Enter it below to finish.";
+        verifyState.textContent = "Pending";
+        verifyState.setAttribute("data-state", "pending");
+      } else {
+        var msg = lcaMail.send(email, {
+          subject: "Verify your account",
+          kind: BYLINK ? "link" : "otp",
+          expired: EXPIRE
+        });
+        verifyPrompt.textContent = BYLINK
+          ? "We sent a confirmation link to " + email + ". Open the inbox and follow it to finish."
+          : "We sent a verification code to " + email + ". Enter it below to finish.";
+        verifyState.textContent = "Pending";
+        verifyState.setAttribute("data-state", "pending");
+        if(BYLINK && msg) startLinkWatch(email);
+      }
+
+      if(BYLINK) otpField.hidden = true;
+
+      signupCard.hidden = true;
+      verifyCard.hidden = false;
+      stateEl.textContent = "Awaiting verification";
+      stateEl.setAttribute("data-state", "awaiting-verification");
+      document.body.setAttribute("data-signup", "awaiting-verification");
+      if(!BYLINK) otpEl.focus();
+    });
+
+    // Link verification is completed in the inbox tab; poll for the flag it sets.
+    function startLinkWatch(email){
+      var key = "lca.verified." + lcaMail.normalise(email);
+      var timer = setInterval(function(){
+        var hit = null;
+        try{ hit = localStorage.getItem(key); }catch(e){}
+        if(hit){
+          clearInterval(timer);
+          finish(email, pending ? pending.password : "");
+        }
+      }, 500);
+    }
+
+    verifyForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(!pending) return;
+
+      verifyErr.textContent = "";
+      verifyErr.setAttribute("data-reason", "");
+
+      var entered = otpEl.value.trim();
+      if(!entered){
+        fail(verifyErr, "Enter the verification code.", "otp_missing", verifyCounter);
+        return;
+      }
+
+      var verdict = lcaMail.verifyCode(pending.email, entered);
+
+      if(verdict === "empty"){
+        fail(verifyErr, "No verification message was sent to " + pending.email + ".", "otp_no_message", verifyCounter);
+        return;
+      }
+      if(verdict === "mismatch"){
+        fail(verifyErr, "That code is not correct.", "otp_mismatch", verifyCounter);
+        return;
+      }
+      if(verdict === "expired"){
+        // A dead code triggers exactly one fresh delivery. The new code is only
+        // readable from the inbox, so the correct recovery is to re-read it.
+        fail(verifyErr, "That code has expired. We sent a new one.", "otp_expired", verifyCounter);
+        lcaMail.send(pending.email, { subject: "Verify your account", kind: "otp" });
+        return;
+      }
+
+      finish(pending.email, pending.password);
+    });
+
+    function finish(email, password){
+      saveAccount(email, password);
+      clearPending();
+      try{ localStorage.removeItem("lca.verified." + lcaMail.normalise(email)); }catch(e){}
+
+      document.getElementById("done-status").textContent = "Account created for " + email;
+      document.getElementById("done-email").textContent = email;
+      document.getElementById("done-ref").textContent = makeRef();
+      document.getElementById("done-pwlen").textContent = String(password.length) + " characters";
+
+      verifyCard.hidden = true;
+      doneCard.hidden = false;
+      verifyState.textContent = "Verified";
+      verifyState.setAttribute("data-state", "verified");
+      stateEl.textContent = "Registered";
+      stateEl.setAttribute("data-state", "registered");
+      document.body.setAttribute("data-signup", "registered");
+      pending = null;
+    }
+
+    // Drift: ids and testids gain a _v2 suffix while every visible label and the
+    // accessible name stay put -- the stable name is what a heal re-derives from.
+    lcaBreak().then(function(v2){
+      document.body.setAttribute("data-drift", v2 ? "1" : "0");
+      if(!v2) return;
+      [emailEl, passEl, confEl, otpEl, btn, document.getElementById("verify-btn")].forEach(function(el){
+        if(!el) return;
+        var oldId = el.id;
+        if(oldId){
+          el.id = oldId + "_v2";
+          var lab = document.querySelector('label[for="' + oldId + '"]');
+          if(lab) lab.setAttribute("for", el.id);
+        }
+        var t = el.getAttribute("data-testid");
+        if(t) el.setAttribute("data-testid", t + "-v2");
+      });
+    });
+
+    document.body.setAttribute("data-signup", "new");
+    paintPolicy();
+    restorePending();
+  })();
+  </script>
+</body>
+</html>

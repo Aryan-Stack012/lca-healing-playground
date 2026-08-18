@@ -7,7 +7,7 @@
 <title>LCA Self-Healing Playground</title>
 <meta name="description" content="Control surface for testing LCA agentic self-healing. One flag drives the break — healthy, drifted, or unhealable — on the same URL.">
 <meta property="og:title" content="LCA Self-Healing Playground">
-<meta property="og:description" content="Break a locator on demand and watch the heal fire — 56 cases, 20 target pages, one shared flag, same URL throughout.">
+<meta property="og:description" content="Break a locator on demand and watch the heal fire — 60 cases, 23 target pages, one shared flag, same URL throughout.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#060912">
 <link rel="icon" href="assets/favicon.svg">
@@ -419,7 +419,7 @@ tbody tr:hover{background:var(--ink-2)}
   <section class="section reveal" aria-labelledby="caseH">
     <div class="section__head">
       <h2 id="caseH">Case matrix</h2>
-      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S56</span>
+      <span class="count" id="caseCount" role="status" aria-live="polite">S1 – S60</span>
     </div>
     <div class="filters" role="group" aria-label="Filter cases by behavior">
       <input class="search" id="search" type="search" placeholder="filter cases — page, behavior, keyword…" aria-label="Filter cases" aria-controls="caseBody">
@@ -471,6 +471,9 @@ var SCENARIOS = [
   {file:"visual.html",     o:"noheal", title:"Visual diff",        desc:"Colour and number randomise on every load, so a visual baseline never matches. A real failure — never healed.", params:["random"]},
   {file:"cookie.html",     o:"app",    title:"Browser config",     desc:"Echoes the cookies and localStorage the run actually sees. Confirms a heal run still carries your configured state.", params:["demoConfig"]},
   {file:"login.html",      o:"app",    title:"Sign in",            desc:"A gated form that accepts exactly one credential pair — held only as a salted <code>PBKDF2-SHA256</code> digest, so view-source never reveals it. Wrong pairs get one generic error; a correct one opens a session panel that survives reload until sign-out.", params:["sessionStorage"]},
+  {file:"signup.html",     o:"app",    title:"Create account",     desc:"Registration with a password policy that is <b>stated on screen and enforced</b>, plus email verification. <code>?strict=1</code> adds an undisclosed rule so a compliant-looking password is still rejected; <code>?nomail=1</code> never delivers; <code>?expire=1</code> delivers a dead code; <code>?link=1</code> verifies by link.", params:["?strict=1","?nomail=1","?expire=1","?link=1","?v=2"]},
+  {file:"signin-email.html",o:"app",   title:"Email sign-in",      desc:"The identity is an <b>email address</b>, and any well-formed address is accepted with the shared password — so a run's own permanent address signs in without this page naming it. Accounts made on signup.html work with their own password. <code>?otp=1</code> / <code>?link=1</code> add a mailed challenge.", params:["?otp=1","?link=1","?expire=1","?v=2"]},
+  {file:"inbox.html",      o:"mixed",  title:"Mailbox",            desc:"Per-address mailbox behind signup and email sign-in. Opening an address nothing was sent to shows an explicit <b>empty state</b> instead of another address's code, so “did the run read the right mailbox?” is answerable from the page. The break drifts the verify-link and code ids; the accessible name stays stable.", params:["?to=addr","?v=2"]},
   {file:"download.html",   o:"noheal", title:"File download",      desc:"Downloads report.txt. Assert the filename: the correct name passes, a wrong name is a validation failure that won't heal.", params:[]},
   {file:"upload.html",     o:"app",    title:"File upload",       desc:"Native file input → OS dialog. Upload <code>report.txt</code> and assert the echoed name; cancelling the dialog must not burn heal budget.", params:[]},
   {file:"api.html",        o:"noheal", title:"API console",       desc:"Fetches <code>api/todo.json</code> live and echoes status + body. A status or JSON mismatch is a real failure — never healed.", params:[]},
@@ -537,7 +540,11 @@ var CASES = [
   ["S53","noheal","customjs-fail.html",                         "Missing return / null / object returns → must fail, never persist an empty or [object Object] variable"],
   ["S54","noheal","customjs-fail.html",                         "Async + timeouts: pending Promise, rejected Promise, never-settles, value assigned after return, blocking sync loop → timeout not hang"],
   ["S55","noheal","customjs-fail.html",                         "Passes wrongly (2): throw inside a setTimeout callback, .value without a dispatched event — no error raised, wrong outcome recorded"],
-  ["S56","mixed","customjs-fail.html",                          "Section F: record 4 hooks green, flip the flag, replay → timeout / truthy \"false\" / null / stale $149.00 vs page $199.00. The only agent-authorable Custom-JS failure"]
+  ["S56","mixed","customjs-fail.html",                          "Section F: record 4 hooks green, flip the flag, replay → timeout / truthy \"false\" / null / stale $149.00 vs page $199.00. The only agent-authorable Custom-JS failure"],
+  ["S57","app",  "signup.html",                                  "No credentials in the test case + a sign-up intent \u2192 register with a temp address. The code is random per send and lives only in the inbox for that exact address, so guessing or hard-coding cannot pass"],
+  ["S58","app",  "signup.html?strict=1",                          "Every stated password rule is satisfied and the form still rejects it (undisclosed rule) \u2192 the run must read the error and generate a genuinely different password, not resubmit"],
+  ["S59","app",  "signin-email.html",                             "Password known but no identity \u2192 the permanent email is accepted here (any well-formed address + the shared password), so the single attempt succeeds. Contrast login.html, where it must fail once and stop"],
+  ["S60","app",  "inbox.html",                                    "Wrong-mailbox negative: open ?to= an address nothing was sent to \u2192 explicit empty state. Reading the permanent inbox during a temp-email signup is observable from the page, no run log needed"],
 ];
 
 var ST  = {heals:"healthy", noheal:"gone", mixed:"drift", app:"config"};
@@ -598,7 +605,7 @@ function overrideQuery(){
 (function(){
   var body = document.getElementById("caseBody");
   // \b (not ^): every occurrence in a multi-target cell gets linked, not just the first
-  var LOCAL = /\b(checkout|validation|frames|visual|timing|flow|modal|config|data|email|cookie|download|upload|api|tabs|windows|smart-tab|customjs-fail|console)\.html(\?[^\s)]*)?|api\/todo\.json/g;
+  var LOCAL = /\b(signin-email|signup|inbox|checkout|validation|frames|visual|timing|flow|modal|config|data|email|cookie|download|upload|api|tabs|windows|smart-tab|customjs-fail|console)\.html(\?[^\s)]*)?|api\/todo\.json/g;
   function linkify(txt){ return txt.replace(LOCAL, function(m){ return '<a href="'+m+'">'+m+'</a>'; }); }
   var rows = CASES.map(function(c){
     return '<tr data-o="'+c[1]+'" data-text="'+(c[0]+" "+c[2]+" "+c[3]).toLowerCase().replace(/"/g,'')+'">'

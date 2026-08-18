@@ -7,3 +7,8 @@
 .bsauth
 .bsproj
 tm/
+
+# Local test-case exports — same reason as above: internal emails, PR refs
+# (pr-1946/pr-4486), Flipper/LCNC subsystem names. Never published.
+browser-flags-test-cases.csv
+*-test-cases.csv

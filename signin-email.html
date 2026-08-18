@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email sign-in · LCA Playground</title>
+<meta name="description" content="Email-identity sign-in. Any well-formed address is accepted with the shared password, so a run's own permanent address works without this page ever naming it. Fixtures: ?otp=1 gates on a mailed code, ?link=1 on a confirmation link.">
+<meta name="theme-color" content="#060912">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/playground.css">
+<style>
+  .authcard{max-width:460px; margin:0 auto}
+  .authform{display:flex; flex-direction:column; gap:var(--s4)}
+  .pwwrap{display:flex; gap:var(--s2); align-items:stretch}
+  .pwwrap input{flex:1; min-width:0}
+  .pwwrap button{white-space:nowrap}
+  .btn-primary{width:100%; justify-content:center}
+  .formerr:not(:empty){display:block; padding:10px 12px; border-radius:var(--r-sm);
+    background:var(--ink-2); border:1px solid var(--line-soft); color:var(--gone);
+    font-family:var(--font-mono); font-size:var(--fs-75)}
+  .authnote{font-size:var(--fs-75); color:var(--faint); margin:0}
+</style>
+</head>
+<body data-sub="signin-email.html">
+  <main id="main" tabindex="-1" class="wrap narrow page">
+    <header class="page__head">
+      <span class="eyebrow">Authenticated area</span>
+      <h1>Sign in with email</h1>
+      <p class="page__note">The identity here is an <b>email address</b>, and any well-formed address is accepted as long as the password is right — so a run's own permanent address signs in without this page ever naming it. As on <a href="login.html">login.html</a>, only a salted <code>PBKDF2-HMAC-SHA256</code> digest (150 000 iterations) ships in the source. Accounts created on <a href="signup.html">signup.html</a> are also accepted with their own password.</p>
+    </header>
+
+    <section class="surface authcard" id="signin-card">
+      <div class="surface__head">
+        <h2 class="surface__title">Account access</h2>
+        <span class="badge badge--info" id="auth-state" data-state="signed-out">Signed out</span>
+      </div>
+      <div class="surface__body">
+        <form class="authform" id="signin-form" novalidate autocomplete="off">
+          <div class="field">
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" autocomplete="username"
+                   autocapitalize="off" autocorrect="off" spellcheck="false"
+                   data-testid="signin-email" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="pwwrap">
+              <input id="password" name="password" type="password" autocomplete="current-password"
+                     spellcheck="false" data-testid="signin-password" required>
+              <button type="button" id="toggle-password" data-testid="signin-toggle-password"
+                      aria-pressed="false" aria-controls="password">Show</button>
+            </div>
+          </div>
+          <button type="submit" id="signin-btn" class="btn-primary" data-testid="signin-submit">Sign in</button>
+          <div class="formerr" id="signin-error" role="alert" aria-live="assertive"
+               data-testid="signin-error" data-attempts="0" data-reason=""></div>
+          <p class="authnote" id="attempt-note" hidden></p>
+        </form>
+      </div>
+      <div class="surface__foot">
+        <span class="meta">Credentials are verified in the browser. No request leaves the page.</span>
+      </div>
+    </section>
+
+    <section class="surface authcard" id="challenge-card" data-testid="challenge-card" hidden>
+      <div class="surface__head">
+        <h2 class="surface__title">Extra verification</h2>
+        <span class="badge badge--warn" id="challenge-state" data-state="pending">Pending</span>
+      </div>
+      <div class="surface__body">
+        <p id="challenge-prompt" data-testid="challenge-prompt"></p>
+        <form class="authform" id="challenge-form" novalidate autocomplete="off">
+          <div class="field" id="code-field">
+            <label for="code">Verification code</label>
+            <input id="code" name="code" type="text" inputmode="numeric" maxlength="6"
+                   autocomplete="one-time-code" spellcheck="false" data-testid="challenge-code">
+          </div>
+          <button type="submit" id="challenge-btn" class="btn-primary" data-testid="challenge-submit">Verify</button>
+          <div class="formerr" id="challenge-error" role="alert" aria-live="assertive"
+               data-testid="challenge-error" data-attempts="0" data-reason=""></div>
+        </form>
+      </div>
+      <div class="surface__foot">
+        <a id="inbox-link" data-testid="inbox-link" href="inbox.html">Open the inbox for this address</a>
+      </div>
+    </section>
+
+    <section class="surface authcard" id="signin-dashboard" data-testid="signin-dashboard" hidden>
+      <div class="surface__head">
+        <h2 class="surface__title">Signed in</h2>
+        <span class="badge badge--ok">Session active</span>
+      </div>
+      <div class="surface__body">
+        <p id="signin-status-text" data-testid="signin-status" class="is-ok" style="font-weight:600"></p>
+        <hr class="divider">
+        <div class="rows">
+          <div class="row"><span class="row__k">Identity</span><span class="row__v" style="text-transform:none"><span id="session-id" data-testid="session-identity"></span></span></div>
+          <div class="row"><span class="row__k">Session ref</span><span class="row__v"><span id="session-ref" data-testid="session-ref"></span></span></div>
+          <div class="row"><span class="row__k">Credential</span><span class="row__v"><span id="session-src" data-testid="session-credential"></span></span></div>
+        </div>
+      </div>
+      <div class="surface__foot">
+        <button id="logout-btn" data-testid="logout" type="button">Sign out</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="flag.js"></script>
+  <script src="assets/page.js"></script>
+  <script src="assets/mailbox.js"></script>
+  <script>
+  (function(){
+    "use strict";
+
+    // Digest of the shared password only -- no identity is mixed in, which is
+    // exactly why any well-formed address works. The secret itself is absent
+    // from this file; recovering it means brute-forcing 150k PBKDF2 rounds per
+    // guess.
+    var SALT_HEX   = "ab0b80ca3446f457bffd14dbc337d73b";
+    var ITERATIONS = 150000;
+    var DIGEST_HEX = "92d4fdaa30ff0cd997f7be617459922eb5afe0e803dfb90637bc2ecd47a7c352";
+
+    var ACCOUNTS_KEY = "lca.accounts";
+    var SESSION_KEY  = "lca.signin-email.session";
+    // Tab-scoped, so navigating to the inbox for the code and coming back does
+    // not discard the challenge this page is waiting on.
+    var PENDING_KEY  = "lca.signin-email.pending";
+    var MIN_LATENCY_MS = 250;
+
+    var params = new URLSearchParams(location.search);
+    function on(k){ var v = params.get(k); return params.has(k) && !(v === "0" || v === "false" || v === "off"); }
+    var WANT_OTP  = on("otp");
+    var WANT_LINK = on("link");
+    var EXPIRE    = on("expire");
+
+    var form    = document.getElementById("signin-form");
+    var emailEl = document.getElementById("email");
+    var passEl  = document.getElementById("password");
+    var btn     = document.getElementById("signin-btn");
+    var toggle  = document.getElementById("toggle-password");
+    var errEl   = document.getElementById("signin-error");
+    var noteEl  = document.getElementById("attempt-note");
+    var card    = document.getElementById("signin-card");
+    var stateEl = document.getElementById("auth-state");
+
+    var chalCard   = document.getElementById("challenge-card");
+    var chalForm   = document.getElementById("challenge-form");
+    var chalPrompt = document.getElementById("challenge-prompt");
+    var chalState  = document.getElementById("challenge-state");
+    var chalErr    = document.getElementById("challenge-error");
+    var codeEl     = document.getElementById("code");
+    var codeField  = document.getElementById("code-field");
+    var inboxLink  = document.getElementById("inbox-link");
+
+    var dash     = document.getElementById("signin-dashboard");
+    var statusEl = document.getElementById("signin-status-text");
+    var idEl     = document.getElementById("session-id");
+    var refEl    = document.getElementById("session-ref");
+    var srcEl    = document.getElementById("session-src");
+    var logout   = document.getElementById("logout-btn");
+
+    var ATTEMPTS_KEY = "lca.signin-email.attempts";
+    function loadAttempts(){
+      var n = 0;
+      try{ n = parseInt(sessionStorage.getItem(ATTEMPTS_KEY) || "0", 10); }catch(e){}
+      return isNaN(n) ? 0 : n;
+    }
+    var attempts = loadAttempts(), chalAttempts = 0;
+    var pending = null;
+    var linkTimer = null;
+
+    function hex(buf){
+      var out = "", v = new Uint8Array(buf);
+      for(var i = 0; i < v.length; i++) out += v[i].toString(16).padStart(2, "0");
+      return out;
+    }
+    function bytesFromHex(s){
+      var out = new Uint8Array(s.length / 2);
+      for(var i = 0; i < out.length; i++) out[i] = parseInt(s.substr(i * 2, 2), 16);
+      return out;
+    }
+    function sameDigest(a, b){
+      if(a.length !== b.length) return false;
+      var diff = 0;
+      for(var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return diff === 0;
+    }
+    function derive(pass){
+      var material = new TextEncoder().encode(pass);
+      return crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"])
+        .then(function(key){
+          return crypto.subtle.deriveBits(
+            { name:"PBKDF2", hash:"SHA-256", salt:bytesFromHex(SALT_HEX), iterations:ITERATIONS },
+            key, 256);
+        })
+        .then(hex);
+    }
+
+    function registeredPassword(email){
+      var all = {};
+      try{ all = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "{}"); }catch(e){}
+      var rec = all[String(email).trim().toLowerCase()];
+      return rec && typeof rec.password === "string" ? rec.password : null;
+    }
+
+    function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+
+    function makeRef(){
+      var b = new Uint8Array(4);
+      crypto.getRandomValues(b);
+      return "SES-" + hex(b).toUpperCase();
+    }
+
+    function fail(message, reason){
+      attempts++;
+      try{ sessionStorage.setItem(ATTEMPTS_KEY, String(attempts)); }catch(e){}
+      errEl.textContent = message;
+      errEl.setAttribute("data-attempts", String(attempts));
+      errEl.setAttribute("data-reason", reason);
+      noteEl.textContent = attempts === 1
+        ? "1 failed attempt this session."
+        : attempts + " failed attempts this session.";
+      noteEl.hidden = false;
+      passEl.value = "";
+      passEl.focus();
+    }
+
+    function showSignedIn(session){
+      statusEl.textContent = "Signed in as " + session.id;
+      idEl.textContent  = session.id;
+      refEl.textContent = session.ref;
+      srcEl.textContent = session.src;
+      stateEl.textContent = "Signed in";
+      stateEl.className = "badge badge--ok";
+      stateEl.setAttribute("data-state", "signed-in");
+      document.body.setAttribute("data-auth", "in");
+      dash.hidden = false;
+      card.hidden = true;
+      chalCard.hidden = true;
+      errEl.textContent = "";
+      noteEl.hidden = true;
+      if(linkTimer){ clearInterval(linkTimer); linkTimer = null; }
+    }
+
+    function showSignedOut(){
+      document.body.setAttribute("data-auth", "out");
+      dash.hidden = true;
+      chalCard.hidden = true;
+      card.hidden = false;
+      stateEl.textContent = "Signed out";
+      stateEl.className = "badge badge--info";
+      stateEl.setAttribute("data-state", "signed-out");
+      passEl.value = "";
+      if(linkTimer){ clearInterval(linkTimer); linkTimer = null; }
+    }
+
+    function grant(email, src){
+      var session = { id: email, ref: makeRef(), src: src };
+      try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); }catch(e){}
+      try{ sessionStorage.removeItem(PENDING_KEY); }catch(e){}
+      try{ sessionStorage.removeItem(ATTEMPTS_KEY); }catch(e){}
+      showSignedIn(session);
+    }
+
+    // Re-enter a pending challenge after a navigation; if the link was followed
+    // in another tab meanwhile, complete sign-in immediately.
+    function restoreChallenge(){
+      var p = null;
+      try{ p = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null"); }catch(e){}
+      if(!p || !p.email) return false;
+      pending = p;
+
+      var key = "lca.verified." + lcaMail.normalise(p.email);
+      var already = null;
+      try{ already = localStorage.getItem(key); }catch(e){}
+      if(already){
+        try{ localStorage.removeItem(key); }catch(e){}
+        grant(p.email, p.src || "shared password");
+        return true;
+      }
+
+      showChallenge(p.email, false, !!p.byLink);
+      return true;
+    }
+
+    function startChallenge(email, src){
+      pending = { email: email, src: src, byLink: !!WANT_LINK };
+      try{ sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending)); }catch(e){}
+      showChallenge(email, true);
+    }
+
+    // resend=false when re-entering the challenge after a navigation -- the
+    // message already exists, and sending again would move the code underneath
+    // a run that has just read it.
+    function showChallenge(email, resend, byLink){
+      // Prefer the stored mode: a run may return to this page without ?link=1.
+      if(byLink === undefined) byLink = !!WANT_LINK;
+      inboxLink.setAttribute("href", "inbox.html?to=" + encodeURIComponent(email));
+
+      if(resend){
+        lcaMail.send(email, {
+          subject: "Your sign-in verification",
+          kind: byLink ? "link" : "otp",
+          expired: EXPIRE
+        });
+      }
+
+      chalPrompt.textContent = byLink
+        ? "We sent a confirmation link to " + email + ". Open the inbox and follow it to finish signing in."
+        : "We sent a verification code to " + email + ". Enter it below to finish signing in.";
+      codeField.hidden = !!byLink;
+
+      card.hidden = true;
+      chalCard.hidden = false;
+      document.body.setAttribute("data-auth", "challenge");
+      chalState.textContent = "Pending";
+      chalState.setAttribute("data-state", "pending");
+
+      if(byLink){
+        var key = "lca.verified." + lcaMail.normalise(email);
+        linkTimer = setInterval(function(){
+          var hit = null;
+          try{ hit = localStorage.getItem(key); }catch(e){}
+          if(hit){
+            clearInterval(linkTimer); linkTimer = null;
+            try{ localStorage.removeItem(key); }catch(e){}
+            chalState.textContent = "Verified";
+            chalState.setAttribute("data-state", "verified");
+            grant(pending.email, pending.src);
+          }
+        }, 500);
+      } else {
+        codeEl.focus();
+      }
+    }
+
+    toggle.addEventListener("click", function(){
+      var shown = passEl.type === "text";
+      passEl.type = shown ? "password" : "text";
+      toggle.textContent = shown ? "Show" : "Hide";
+      toggle.setAttribute("aria-pressed", shown ? "false" : "true");
+    });
+
+    logout.addEventListener("click", function(){
+      try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+      showSignedOut();
+      emailEl.focus();
+    });
+
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(btn.disabled) return;
+
+      var email = emailEl.value.trim();
+      var pass  = passEl.value;
+
+      errEl.textContent = "";
+      errEl.setAttribute("data-reason", "");
+
+      if(!email || !pass){ fail("Enter both an email address and a password.", "missing"); return; }
+      if(!validEmail(email)){ fail("Enter a valid email address.", "email_format"); return; }
+
+      // An account registered on signup.html signs in with its own password.
+      var own = registeredPassword(email);
+      if(own !== null && own === pass){
+        if(WANT_OTP || WANT_LINK) startChallenge(email, "registered account");
+        else grant(email, "registered account");
+        return;
+      }
+
+      if(!(window.crypto && crypto.subtle)){
+        errEl.textContent = "Sign-in needs a secure context (https:// or localhost).";
+        return;
+      }
+
+      btn.disabled = true;
+      var label = btn.textContent;
+      btn.textContent = "Signing in…";
+      document.body.setAttribute("data-auth", "pending");
+
+      var started = Date.now();
+      derive(pass).then(function(digest){
+        var wait = Math.max(0, MIN_LATENCY_MS - (Date.now() - started));
+        return new Promise(function(r){ setTimeout(function(){ r(digest); }, wait); });
+      }).then(function(digest){
+        btn.disabled = false;
+        btn.textContent = label;
+        if(!sameDigest(digest, DIGEST_HEX)){
+          document.body.setAttribute("data-auth", "out");
+          fail("Invalid email or password.", "bad_credentials");
+          return;
+        }
+        if(WANT_OTP || WANT_LINK) startChallenge(email, "shared password");
+        else grant(email, "shared password");
+      }).catch(function(){
+        btn.disabled = false;
+        btn.textContent = label;
+        document.body.setAttribute("data-auth", "out");
+        fail("Sign-in could not be completed. Try again.", "error");
+      });
+    });
+
+    chalForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(!pending) return;
+
+      chalErr.textContent = "";
+      chalErr.setAttribute("data-reason", "");
+
+      var entered = codeEl.value.trim();
+      if(!entered){
+        chalAttempts++;
+        chalErr.textContent = "Enter the verification code.";
+        chalErr.setAttribute("data-attempts", String(chalAttempts));
+        chalErr.setAttribute("data-reason", "code_missing");
+        return;
+      }
+
+      var verdict = lcaMail.verifyCode(pending.email, entered);
+      chalAttempts++;
+      chalErr.setAttribute("data-attempts", String(chalAttempts));
+
+      if(verdict === "ok"){
+        chalState.textContent = "Verified";
+        chalState.setAttribute("data-state", "verified");
+        grant(pending.email, pending.src);
+        return;
+      }
+      if(verdict === "empty"){
+        chalErr.textContent = "No verification message was sent to " + pending.email + ".";
+        chalErr.setAttribute("data-reason", "code_no_message");
+        return;
+      }
+      if(verdict === "expired"){
+        chalErr.textContent = "That code has expired. We sent a new one.";
+        chalErr.setAttribute("data-reason", "code_expired");
+        lcaMail.send(pending.email, { subject: "Your sign-in verification", kind: "otp" });
+        return;
+      }
+      chalErr.textContent = "That code is not correct.";
+      chalErr.setAttribute("data-reason", "code_mismatch");
+    });
+
+    // Drift: ids and testids gain a _v2 suffix; visible labels stay put.
+    lcaBreak().then(function(v2){
+      document.body.setAttribute("data-drift", v2 ? "1" : "0");
+      if(!v2) return;
+      [emailEl, passEl, codeEl, btn, document.getElementById("challenge-btn")].forEach(function(el){
+        if(!el) return;
+        var oldId = el.id;
+        if(oldId){
+          el.id = oldId + "_v2";
+          var lab = document.querySelector('label[for="' + oldId + '"]');
+          if(lab) lab.setAttribute("for", el.id);
+        }
+        var t = el.getAttribute("data-testid");
+        if(t) el.setAttribute("data-testid", t + "-v2");
+      });
+    });
+
+    // Paint the restored count, or the persistence above buys nothing: the
+    // markup ships data-attempts="0" and only fail() ever changed it.
+    if(attempts > 0){
+      errEl.setAttribute("data-attempts", String(attempts));
+      noteEl.textContent = attempts === 1
+        ? "1 failed attempt this session."
+        : attempts + " failed attempts this session.";
+      noteEl.hidden = false;
+    }
+
+    var restored = null;
+    try{ restored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); }catch(e){}
+    if(restored && restored.id && restored.ref) showSignedIn(restored);
+    else if(!restoreChallenge()) showSignedOut();
+  })();
+  </script>
+</body>
+</html>
