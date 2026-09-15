@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import fs from 'fs';
+
+const storageStatePath = process.env.STORAGE_STATE_PATH;
+const storageState = storageStatePath && fs.existsSync(storageStatePath) ? storageStatePath : undefined;
 
 export default defineConfig({
   testDir: './tests',
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: 1,
   use: {
     baseURL: 'https://aryan-stack012.github.io/lca-healing-playground/',
-    storageState: process.env.STORAGE_STATE_PATH || undefined,
+    storageState,
     headless: true,
     screenshot: 'only-on-failure',
     video: 'off',
