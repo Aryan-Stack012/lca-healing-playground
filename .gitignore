@@ -13,3 +13,4 @@ tm/
 browser-flags-test-cases.csv
 *-test-cases.csv
 node_modules/
+test-results/
