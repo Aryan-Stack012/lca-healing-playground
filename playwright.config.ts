@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 30000,
   retries: 1,
   use: {
-    baseURL: 'https://aryan-stack012.github.io/lca-healing-playground',
+    baseURL: 'https://aryan-stack012.github.io/lca-healing-playground/',
     storageState: process.env.STORAGE_STATE_PATH || undefined,
     headless: true,
     screenshot: 'only-on-failure',
