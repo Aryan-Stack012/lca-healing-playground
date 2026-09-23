@@ -12,3 +12,5 @@ tm/
 # (pr-1946/pr-4486), Flipper/LCNC subsystem names. Never published.
 browser-flags-test-cases.csv
 *-test-cases.csv
+node_modules/
+test-results/

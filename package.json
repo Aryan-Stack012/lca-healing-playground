@@ -1,0 +1,19 @@
+{
+  "name": "fc7e9e02-9ca2-4fd9-90d3-8f37efd983bc",
+  "version": "1.0.0",
+  "description": "Controllable pages to test LCA agentic self-healing. **Same URL the whole time** — the break is driven by a shared flag, so the agentic test never re-records from scratch.",
+  "main": "flag.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "/efs/cloud-agent-sessions/fc7e9e02-9ca2-4fd9-90d3-8f37efd983bc/base.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
