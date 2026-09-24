@@ -24,6 +24,15 @@ test.describe('download.html — file download', () => {
     await expect(dlLink).toHaveAttribute('href', 'files/report.txt');
     await expect(dlLink).toHaveAttribute('download', 'report.txt');
   });
+
+  test('file metadata shows Plain text and report.txt', async ({ page }) => {
+    await page.goto('/lca-healing-playground/download.html');
+    await expect(page).toHaveTitle(/File download/i);
+    // The .meta div contains "Plain text · build LCA-4821 · 28 bytes"
+    await expect(page.locator('.meta')).toContainText('Plain text');
+    // report.txt appears in the download link and page content
+    await expect(page.locator('#dl')).toHaveAttribute('download', 'report.txt');
+  });
 });
 
 test.describe('upload.html — file upload', () => {
@@ -34,6 +43,31 @@ test.describe('upload.html — file upload', () => {
     await expect(fileInput).toBeAttached();
     // The file-selector button is the upload trigger — verify the input accepts .txt
     await expect(fileInput).toHaveAttribute('accept', '.txt,text/plain');
+  });
+
+  test('uploading report.txt shows filename and success result', async ({ page }) => {
+    await page.goto('/lca-healing-playground/upload.html');
+    await expect(page).toHaveTitle(/File upload/i);
+    const fileInput = page.locator('#file');
+    // Upload the report.txt file that ships with the playground
+    await fileInput.setInputFiles({
+      name: 'report.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('LCA test report'),
+    });
+    await expect(page.locator('#fname')).toHaveText('report.txt');
+    await expect(page.locator('#result')).toContainText('✅ report.txt uploaded');
+  });
+
+  test('uploading a wrong-named file shows error result', async ({ page }) => {
+    await page.goto('/lca-healing-playground/upload.html');
+    const fileInput = page.locator('#file');
+    await fileInput.setInputFiles({
+      name: 'wrong-file.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('wrong content'),
+    });
+    await expect(page.locator('#result')).toContainText('❌ Unexpected file:');
   });
 });
 

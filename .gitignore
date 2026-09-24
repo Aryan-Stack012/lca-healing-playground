@@ -14,3 +14,6 @@ browser-flags-test-cases.csv
 *-test-cases.csv
 node_modules/
 test-results/
+
+# Test Companion onboarding (local, per-machine)
+.test-companion/

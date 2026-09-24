@@ -34,6 +34,26 @@ test.describe('data.html', () => {
     await expect(tokenEl.first()).toBeVisible();
     await expect(tokenEl.first()).toContainText('HEAL-7421');
   });
+
+  test('healthy state: #token visible and contains HEAL-7421', async ({ page }) => {
+    await page.goto(`${BASE}/data.html`);
+    await expect(page).toHaveTitle(/Producer/);
+    const prod = page.locator('#prod');
+    await expect(prod).not.toBeEmpty({ timeout: 10000 });
+    const token = page.locator('#token');
+    await expect(token).toBeVisible();
+    await expect(token).toContainText('HEAL-7421');
+  });
+
+  test('flag-on (?v=2): #token_v2 visible and contains HEAL-7421', async ({ page }) => {
+    await page.goto(`${BASE}/data.html?v=2`);
+    await expect(page).toHaveTitle(/Producer/);
+    const prod = page.locator('#prod');
+    await expect(prod).not.toBeEmpty({ timeout: 10000 });
+    const tokenV2 = page.locator('#token_v2');
+    await expect(tokenV2).toBeVisible();
+    await expect(tokenV2).toContainText('HEAL-7421');
+  });
 });
 
 test.describe('cookie.html', () => {
@@ -52,6 +72,26 @@ test.describe('cookie.html', () => {
 
     // The seed code block should be visible
     await expect(page.locator('.code')).toContainText('localStorage.setItem');
+  });
+
+  test('#out pre shows cookies: label', async ({ page }) => {
+    await page.goto(`${BASE}/cookie.html`);
+    await expect(page).toHaveTitle(/Browser config/);
+    await expect(page.locator('#out')).toContainText('cookies:');
+  });
+
+  test('seed code block shows localStorage.setItem and document.cookie instructions', async ({ page }) => {
+    await page.goto(`${BASE}/cookie.html`);
+    await expect(page.locator('.code')).toContainText('localStorage.setItem');
+    await expect(page.locator('.code')).toContainText('document.cookie');
+  });
+
+  test('seeded localStorage value is echoed in #out', async ({ page }) => {
+    // Set demoConfig in localStorage before navigating so the page echoes it
+    await page.goto(`${BASE}/cookie.html`);
+    await page.evaluate(() => localStorage.setItem('demoConfig', 'region=us-east'));
+    await page.reload();
+    await expect(page.locator('#out')).toContainText('region=us-east');
   });
 });
 
