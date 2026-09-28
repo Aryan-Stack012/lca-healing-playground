@@ -121,8 +121,8 @@
 .screen[data-state="gone"] .readout__state{text-shadow:0 0 9px color-mix(in srgb, var(--state) 30%, transparent)}
 .readout__state.enter{animation:readoutIn .42s var(--ease)}
 @keyframes readoutIn{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
-.readout__src{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.04em; color:var(--muted); text-align:right; white-space:nowrap; padding-bottom:6px}
-.readout__src b{color:var(--state,var(--text)); font-weight:500}
+.readout__src{font-family:var(--font-mono); font-size:var(--fs-50); letter-spacing:.04em; color:var(--muted); text-align:right; white-space:nowrap; padding-bottom:6px; position:relative; z-index:1; background-color:#05080F; padding:4px 6px; border-radius:4px}
+.readout__src b{color:var(--state,#E8EDF7); font-weight:500}
 
 .monitor__plate{display:flex; align-items:center; gap:var(--s3); padding:var(--s4) var(--s5); border-top:1px solid var(--line-soft); background:var(--panel)}
 .plate__pulse{flex:none; width:10px; height:10px; border-radius:50%; background:var(--state,var(--faint)); box-shadow:0 0 12px var(--state,transparent); animation:livePulse 2.4s ease-in-out infinite}
@@ -187,6 +187,7 @@
   background-size:44px 44px;
   box-shadow:var(--e1); text-decoration:none; color:inherit; overflow:hidden;
   transition:transform .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+  contain:paint;
 }
 .scn::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--state); opacity:.85; transition:width .2s var(--ease), opacity .2s var(--ease)}
 @media (hover:hover){
@@ -203,14 +204,17 @@
 .scn__meta{display:inline-flex; align-items:center; gap:var(--s2)}
 .scn__wave{display:block; width:56px; height:16px; opacity:.85}
 .scn__wave path{fill:none; stroke:var(--state); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
-.scn__tag{font-family:var(--font-mono); font-size:10px; letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--state); background:var(--state-dim); border:1px solid color-mix(in srgb,var(--state) 40%, transparent); padding:2px 8px; border-radius:var(--r-pill); white-space:nowrap}
-.scn[data-state="config"] .scn__tag{border-style:dashed; color:var(--faint)} /* steel misses AA at 10px — lift text, keep steel border */
+.scn__tag{font-family:var(--font-mono); font-size:10px; letter-spacing:var(--track-micro); text-transform:uppercase; color:#060912; background:var(--state,#7E8AA4); border:1px solid color-mix(in srgb,var(--state) 40%, transparent); padding:2px 8px; border-radius:var(--r-pill); white-space:nowrap}
+.scn[data-state="healthy"] .scn__tag{background:#3FE0A6; color:#060912}
+.scn[data-state="drift"]   .scn__tag{background:#F6B53C; color:#060912}
+.scn[data-state="gone"]    .scn__tag{background:#FF7E8C; color:#060912}
+.scn[data-state="config"]  .scn__tag{border-style:dashed; background:#18223A; color:#E8EDF7} /* AAA: #E8EDF7 on #18223A = ~12:1 */
 .scn__title{font-family:var(--font-display); font-weight:600; font-size:var(--fs-300); margin:2px var(--s4) var(--s2); letter-spacing:-.01em}
 .scn__desc{margin:0 var(--s4) var(--s3); font-size:var(--fs-100); color:var(--muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; max-height:calc(1.5em * 3)}
 .scn__params{display:flex; flex-wrap:wrap; gap:6px; padding:0 var(--s4); min-height:6px}
-.scn__params code{font-family:var(--font-mono); font-size:11px; color:var(--text); background:var(--ink); border:1px solid var(--line-soft); border-radius:6px; padding:2px 7px}
-.scn__go{padding:var(--s3) var(--s4) var(--s4); font-family:var(--font-mono); font-size:var(--fs-50); color:var(--faint); display:flex; align-items:center; gap:6px; letter-spacing:.06em; text-transform:uppercase}
-.scn__go .arr{display:inline-block; transition:transform .2s var(--ease)}
+.scn__params code{font-family:var(--font-mono); font-size:11px; color:#E8EDF7; background-color:#060912 !important; border:1px solid var(--line-soft); border-radius:6px; padding:2px 7px; position:relative; z-index:1}
+.scn__go{padding:var(--s3) var(--s4) var(--s4); font-family:var(--font-mono); font-size:var(--fs-50); color:var(--muted); display:flex; align-items:center; gap:6px; letter-spacing:.06em; text-transform:uppercase}
+.scn__go .arr{display:inline-block; transition:transform .2s var(--ease); color:var(--text)}
 
 /* ---------- case matrix ---------- */
 .filters{display:flex; flex-wrap:wrap; gap:var(--s2); align-items:center; margin-bottom:var(--s4)}
@@ -313,7 +317,7 @@ tbody tr:hover{background:var(--ink-2)}
   <!-- SIGNATURE: live oscilloscope reading the real break flag -->
   <section class="cluster reveal in" aria-labelledby="clusterH">
     <h2 id="clusterH" class="sr-only">Live break state and controls</h2>
-    <div class="monitor" aria-label="Live heal-signal monitor">
+    <div class="monitor" role="region" aria-label="Live heal-signal monitor">
       <div class="monitor__bezel">
         <span class="bezel__id">
           <span class="dotrow"><i></i><i></i><i></i></span>
